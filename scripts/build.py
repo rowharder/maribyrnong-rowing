@@ -89,7 +89,7 @@ def build_course_tide(gauges, tides, lag_minutes, now):
 
 
 def build_river_forecast(src, th, gauges, now, status):
-    """Our experimental Keilor forecast: observed, 'with forecast rain' and 'if no more rain'."""
+    """Our experimental Keilor forecast: observed levels plus the forecast using forecast rain."""
     cfg = src.get("river_forecast")
     model_path = ROOT / "config" / "river_model.json"
     keilor = next((g for g in gauges if g["role"] == "keilor"), None)
@@ -114,7 +114,6 @@ def build_river_forecast(src, th, gauges, now, status):
     hist = keilor.get("flow_history") or [q_now]
     q_3h = hist[-4] if len(hist) >= 4 else None
     wet = river_model.forecast(model, q_now, q_3h, past_rain, future_rain, horizon)
-    dry = river_model.forecast(model, q_now, q_3h, past_rain, [0.0] * horizon, horizon)
     iso = lambda t: t.isoformat(timespec="minutes")
     band = th["flood"]["keilor_level_m"]
     # Shift so the forecast starts exactly at the measured level (rating curve isn't perfect).
@@ -125,7 +124,6 @@ def build_river_forecast(src, th, gauges, now, status):
         "observed": [{"time": iso(datetime.strptime(r["time"], "%Y-%m-%d %H:%M:%S").replace(tzinfo=tz)), "level_m": r["level_m"]}
                      for r in keilor["history"]],
         "with_rain": [{"time": iso(t), "level_m": round(level(q) + offset, 3)} for t, q in zip(future_hours, wet)],
-        "no_rain": [{"time": iso(t), "level_m": round(level(q) + offset, 3)} for t, q in zip(future_hours, dry)],
         "rain_past_72h_mm": round(sum(past_rain[-72:]), 1),
         "rain_next_72h_mm": round(sum(future_rain), 1) if future is not None else None,
         "thresholds": {"yellow": band["amber"], "red": band["red"]},

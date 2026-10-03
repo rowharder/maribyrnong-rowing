@@ -269,14 +269,13 @@
     return `<h3 class="sub-h">Keilor forecast <span class="badge">experimental</span></h3>
       ${lineChart("river", "Keilor river height: measured and forecast", [
         { name: "Measured", cls: "tc-obs", pts: toPts(fc.observed), measured: true },
-        { name: "With forecast rain", cls: "tc-pred", pts: toPts(fc.with_rain) },
-        { name: "If no more rain", cls: "tc-dry", pts: toPts(fc.no_rain) },
+        { name: "Forecast", cls: "tc-pred", pts: toPts(fc.with_rain) },
       ], [
         { v: fc.thresholds.red, cls: "tc-red", label: `red ${fc.thresholds.red} m` },
         { v: fc.thresholds.yellow, cls: "tc-amber", label: `yellow ${fc.thresholds.yellow} m` },
       ])}
       <p class="note">Our own forecast from Keilor's current flow and catchment rain, learned from 2018–2024 Melbourne Water records. Catchment rain: ${fc.rain_past_72h_mm} mm in the last 3 days, ${fc.rain_next_72h_mm != null
-          ? `${fc.rain_next_72h_mm} mm forecast for the next 3.` : "<strong>rain forecast unavailable this update</strong> (both lines assume no more rain)."}${
+          ? `${fc.rain_next_72h_mm} mm forecast for the next 3.` : "<strong>rain forecast unavailable this update</strong> (the forecast assumes no more rain)."}${
         err != null && errHigh != null ? ` Tested on 2025–26: a day ahead it was typically within ${Math.round(err * 100)} cm in normal conditions and ${Math.round(errHigh * 100)} cm when the river was high. It handles falling rivers well but <strong>under-estimates sharp flood rises</strong>.` : ""}
         ${fc.use_for_lights ? "Sets the Flood light for sessions more than 3 hours away (nearer sessions use the current Keilor reading)." : "Shown for information – the lights still use the current Keilor level."}</p>`;
   }
