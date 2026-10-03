@@ -296,8 +296,9 @@
     document.body.appendChild(s);
     const base = `https://${code}.goatcounter.com/counter/TOTAL.json`;
     const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
+    // Without a start date GoatCounter's total comes back as 0, so count from launch.
     Promise.all([
-      fetch(base).then((r) => r.json()),
+      fetch(`${base}?start=2026-10-01`).then((r) => r.json()),
       fetch(`${base}?start=${weekAgo}`).then((r) => r.json()).catch(() => null),
     ]).then(([all, week]) => {
       $("usage").textContent = `${all.count} visits` + (week ? ` · ${week.count} this week` : "");
