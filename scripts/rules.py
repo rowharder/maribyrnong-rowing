@@ -16,10 +16,10 @@ FACTORS = [
     ("temp", "Temperature"),
     ("rain", "Rain"),
     ("lightning", "Lightning"),
-    ("visibility", "Fog / visibility"),
+    ("visibility", "Fog"),
     ("darkness", "Darkness"),
     ("tide", "Tide"),
-    ("flood", "River / flood"),
+    ("flood", "Flood"),
 ]
 
 THUNDER_CODES = {95, 96, 99}
@@ -354,7 +354,7 @@ def evaluate_session(*, start, end, is_morning, hours, day_text, tides, warnings
 
 
 def drivers(factors, overall):
-    """Short labels for what set the overall light, e.g. ["Dark + fog"] or ["Darkness", "River / flood"]."""
+    """Short labels for what set the overall light, e.g. ["Dark + fog"] or ["Darkness", "Flood"]."""
     if overall == GREEN:
         return []
     labels = dict(FACTORS)

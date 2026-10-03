@@ -125,7 +125,7 @@ class Single(unittest.TestCase):
 
     def test_drivers_name_the_river(self):
         r = session([hour()] * 3, morning="day", tides=RISING_TIDES, gauges=HIGH_RIVER)
-        self.assertEqual(r["drivers"], ["River / flood"])
+        self.assertEqual(r["drivers"], ["Flood"])
 
 
     def test_thunderstorm_in_session_is_red(self):
