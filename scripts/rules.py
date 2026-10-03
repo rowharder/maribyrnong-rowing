@@ -187,28 +187,28 @@ def sun_crossing(day_start: datetime, lat, lon, angle, rising):
 
 
 def eval_darkness(start, end, lat, lon, th, is_morning):
-    """When boat lights are needed: any part of the session before first light or after last light
-    (civil twilight). Not a traffic light on its own - it only matters in combinations (dark + fog,
-    dark + rain). Returns a factor flagged `active` when dark, plus a `lights` note for the page."""
+    """When boat lights are needed: any part of the session before sunrise or after sunset.
+    Not a traffic light on its own - it only matters in combinations (dark + fog, dark + rain).
+    Returns a factor flagged `active` when dark, plus a `lights` note for the page."""
     day0 = start.replace(hour=0, minute=0, second=0, microsecond=0)
     angle = th["darkness"]["dark_below_deg"]
-    first_light = sun_crossing(day0, lat, lon, angle, rising=True)
-    last_light = sun_crossing(day0, lat, lon, angle, rising=False)
-    if first_light is None or last_light is None:
-        f = factor(UNKNOWN, "?", "Could not work out first/last light")
+    sunrise = sun_crossing(day0, lat, lon, angle, rising=True)
+    sunset = sun_crossing(day0, lat, lon, angle, rising=False)
+    if sunrise is None or sunset is None:
+        f = factor(UNKNOWN, "?", "Could not work out sunrise/sunset")
         f["lights"] = None
         return f
     short, detail = [], []
-    if start < first_light:
-        short.append(f"Lights to {min(first_light, end):%H:%M}")
-        detail.append(f"Lights needed {start:%H:%M}–{min(first_light, end):%H:%M} (first light {first_light:%H:%M})")
-    if end > last_light:
-        short.append(f"Lights from {max(last_light, start):%H:%M}")
-        detail.append(f"Lights needed {max(last_light, start):%H:%M}–{end:%H:%M} (last light {last_light:%H:%M})")
+    if start < sunrise:
+        short.append(f"Lights to {min(sunrise, end):%H:%M}")
+        detail.append(f"Lights needed {start:%H:%M}–{min(sunrise, end):%H:%M} (sunrise {sunrise:%H:%M})")
+    if end > sunset:
+        short.append(f"Lights from {max(sunset, start):%H:%M}")
+        detail.append(f"Lights needed {max(sunset, start):%H:%M}–{end:%H:%M} (sunset {sunset:%H:%M})")
     f = factor(GREEN, "Dark" if short else "Light", *detail)
     f["active"] = bool(short)
     f["lights"] = {"needed": bool(short), "short": " · ".join(short), "detail": "; ".join(detail)} if short else \
-        {"needed": False, "short": "", "detail": f"No lights needed (first light {first_light:%H:%M}, last light {last_light:%H:%M})"}
+        {"needed": False, "short": "", "detail": f"No lights needed (sunrise {sunrise:%H:%M}, sunset {sunset:%H:%M})"}
     return f
 
 

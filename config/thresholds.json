@@ -34,8 +34,8 @@
     "fog"
   ],
   "darkness": {
-    "_comment": "Sun angle in degrees; below -6 (civil twilight) = dark, boat lights needed. Darkness is shown as a 'Lights' note, not a light. It only turns things red in combinations (dark + fog, dark + rain).",
-    "dark_below_deg": -6
+    "_comment": "Boat lights needed before sunrise and after sunset (sun centre 0.833° below the horizon, the standard sunrise/sunset definition). Shown as a 'Lights' note, not a light. Only turns things red in combinations (dark + fog, dark + rain).",
+    "dark_below_deg": -0.833
   },
   "tide_ebb_m_per_hr": {
     "_comment": "An outgoing tide alone is amber. It turns red only in combination with high river flow (see combinations).",

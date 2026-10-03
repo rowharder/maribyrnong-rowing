@@ -15,7 +15,7 @@ Guide only. The coach or captain makes the call.
   - evenings 18:00–20:00
 - One **row per factor**: Wind, Temperature, Rain, Lightning, Fog, Tide, Flood.
 - A **Lights** note under the session time ("Lights to 06:24" / "Lights from 19:54") when any part of the
-  session is before first light or after last light (civil twilight). It's information, not a light.
+  session is before sunrise or after sunset. It's information, not a light.
 - An **Overall** light per column (the worst factor), with the factors that set it listed underneath.
 - **Tap a column** for the reasons behind each light. **Tap a row name ↗** to open the source page and check it.
 - A **Right now** section:

@@ -119,15 +119,20 @@ class Single(unittest.TestCase):
         self.assertNotEqual(r["overall"], "green")
 
 
-    def test_evening_just_past_last_light_needs_lights(self):
-        # Mon 5 Oct: last light ~19:54, session ends 20:00.
+    def test_evening_after_sunset_needs_lights(self):
+        # Mon 5 Oct: sunset ~19:28, session ends 20:00.
         start = datetime(2026, 10, 5, 18, 0, tzinfo=TZ)
         end = datetime(2026, 10, 5, 20, 0, tzinfo=TZ)
         f = rules.eval_darkness(start, end, LAT, LON, TH, is_morning=False)
         self.assertTrue(f["active"])
-        self.assertRegex(f["lights"]["short"], r"^Lights from 19:5\d$")
-        self.assertIn("last light 19:5", f["lights"]["detail"])
-        self.assertNotIn("Sunset", f["lights"]["detail"])
+        self.assertRegex(f["lights"]["short"], r"^Lights from 19:2\d$")
+        self.assertIn("sunset 19:2", f["lights"]["detail"])
+
+    def test_weekend_morning_after_sunrise_needs_no_lights(self):
+        # Sat 9 Jan 2027: sunrise ~06:05, weekend session 06:30-08:00.
+        start = datetime(2027, 1, 9, 6, 30, tzinfo=TZ)
+        f = rules.eval_darkness(start, start.replace(hour=8), LAT, LON, TH, is_morning=True)
+        self.assertFalse(f["active"])
 
     def test_drivers_name_the_river(self):
         r = session([hour()] * 3, morning="day", tides=RISING_TIDES, gauges=HIGH_RIVER)
