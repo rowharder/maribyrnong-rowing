@@ -157,6 +157,10 @@
     ],
     "flood": [
       {
+        "label": "BOM river heights – Maribyrnong at Keilor",
+        "url": "https://www.bom.gov.au/cgi-bin/wrap_fwo.pl?IDV60201.html"
+      },
+      {
         "label": "Melbourne Water river levels (Keilor)",
         "url": "https://www.melbournewater.com.au/water-and-environment/water-management/rainfall-and-river-levels#/reader/230105A"
       },
