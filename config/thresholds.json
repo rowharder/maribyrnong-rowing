@@ -53,7 +53,7 @@
       "red": 0.5
     }
   },
-  "stale_after_hours": 3,
+  "stale_after_hours": 8,
   "combinations": [
     {
       "label": "Dark + fog",

@@ -2,7 +2,9 @@ name: Update conditions
 
 on:
   schedule:
-    - cron: "*/30 * * * *"   # every 30 minutes (GitHub may delay runs by a few minutes)
+    # Hourly at :23 - off the top/half of the hour, when GitHub is busiest and most likely
+    # to skip scheduled runs. Even with skipped runs the page should refresh well within 6 hours.
+    - cron: "23 * * * *"
   workflow_dispatch:          # "Run workflow" button in the Actions tab
   push:
     branches: [main]
@@ -40,7 +42,7 @@ jobs:
       - name: Keep schedule alive
         if: github.event_name == 'schedule'
         run: |
-          if [ "$(date -u +%d)" = "01" ] && [ "$(date -u +%H)" = "00" ] && [ "$(date -u +%M)" -lt 30 ]; then
+          if [ "$(date -u +%d)" = "01" ] && [ "$(date -u +%H)" = "00" ]; then
             date -u > .github/keepalive
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

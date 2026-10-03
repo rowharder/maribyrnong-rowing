@@ -8,7 +8,7 @@ risk factor; the top row is the overall call.
 
 ## How it works
 
-Every 30 minutes a GitHub Action runs `scripts/build.py`, which:
+About every hour a GitHub Action runs `scripts/build.py`, which:
 
 1. fetches data from:
    - BOM: text forecast, Essendon Airport observations, Victorian warnings, Williamstown tide predictions
@@ -18,7 +18,7 @@ Every 30 minutes a GitHub Action runs `scripts/build.py`, which:
 3. writes `site/data/latest.json` and publishes the `site/` folder to GitHub Pages.
 
 If a source fails, its lights show grey ("No data – check manually") rather than a false green. If the
-whole page is more than 3 hours old, every light turns grey.
+whole page is more than 8 hours old, every light turns grey.
 
 ## The rules (edit `config/thresholds.json`)
 
