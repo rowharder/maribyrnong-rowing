@@ -236,7 +236,7 @@ def main():
             "tide_lag_minutes": src["tide_lag_minutes"],
             "course_tide": course_tide,
             "river_forecast": river_fc,
-            "warnings": warnings["flood"] + warnings["flood_watch"] + warnings["storm"],
+            "warnings": warnings["flood"] + warnings["flood_watch"] + warnings["thunderstorm"] + warnings["severe_weather"],
         },
         "sources": status,
         "stale_after_hours": th["stale_after_hours"],

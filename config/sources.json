@@ -81,6 +81,10 @@
       {
         "label": "BOM Essendon Airport observations",
         "url": "https://www.bom.gov.au/products/IDV60901/IDV60901.95866.shtml"
+      },
+      {
+        "label": "BOM Victorian warnings",
+        "url": "https://www.bom.gov.au/vic/warnings/"
       }
     ],
     "temp": [
@@ -107,14 +111,14 @@
         "url": "https://www.bom.gov.au/vic/forecasts/melbourne.shtml"
       }
     ],
-    "storm": [
-      {
-        "label": "BOM Victorian warnings",
-        "url": "https://www.bom.gov.au/vic/warnings/"
-      },
+    "lightning": [
       {
         "label": "BOM Melbourne radar",
         "url": "https://www.bom.gov.au/products/IDR023.loop.shtml"
+      },
+      {
+        "label": "BOM Victorian warnings",
+        "url": "https://www.bom.gov.au/vic/warnings/"
       },
       {
         "label": "BOM Melbourne forecast",

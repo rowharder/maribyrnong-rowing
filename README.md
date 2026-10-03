@@ -13,7 +13,7 @@ Every 30 minutes a GitHub Action runs `scripts/build.py`, which:
 1. fetches data from:
    - BOM: text forecast, Essendon Airport observations, Victorian warnings, Williamstown tide predictions
    - Melbourne Water: river gauges at Maribyrnong (tidal, ~700 m from Poyntons – shown as the measured tide), Keilor, Keilor North, Bulla North, Sunbury and Darraweit Guim
-   - Open-Meteo: hourly forecast for wind, temperature, rain, fog/visibility and storm potential
+   - Open-Meteo: hourly forecast for wind, temperature, rain, fog/visibility and thunderstorms
 2. applies the rules in `scripts/rules.py` using the numbers in `config/thresholds.json`,
 3. writes `site/data/latest.json` and publishes the `site/` folder to GitHub Pages.
 
@@ -24,10 +24,10 @@ whole page is more than 3 hours old, every light turns grey.
 
 | Factor | Amber | Red |
 |---|---|---|
-| Wind | ≥10 kn | ≥15 kn |
+| Wind | ≥10 kn | ≥15 kn, or a BOM Severe Weather Warning (Central district) |
 | Temperature | ≥30 °C, or below 5 °C | ≥35 °C |
 | Rain | ≥2 mm/hr | – |
-| Storms | thunderstorm forecast | BOM severe thunderstorm/weather warning (Central district) |
+| Lightning | BOM day forecast mentions thunder/lightning/hail, or unstable air with rain | thunderstorm forecast during the session, or a BOM Severe Thunderstorm Warning (Central district) |
 | Fog / visibility | <2 km or fog forecast | <1 km |
 | Darkness | any part of the session before first light or after last light (civil twilight) | – (red with fog or rain) |
 | Tide | outgoing, falling ≥0.1 m/hr | – |

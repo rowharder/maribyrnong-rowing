@@ -15,7 +15,7 @@ FACTORS = [
     ("wind", "Wind"),
     ("temp", "Temperature"),
     ("rain", "Rain"),
-    ("storm", "Storms"),
+    ("lightning", "Lightning"),
     ("visibility", "Fog / visibility"),
     ("darkness", "Darkness"),
     ("tide", "Tide"),
@@ -44,7 +44,7 @@ def _band(x, amber, red=None):
 
 # ---------------------------------------------------------------- weather
 
-def eval_wind(hours, th):
+def eval_wind(hours, th, warnings=None, within_warning_window=False):
     vals = [h["wind"] for h in hours if h and h.get("wind") is not None]
     if not vals:
         return factor(UNKNOWN, "?", "No wind forecast available")
@@ -52,8 +52,13 @@ def eval_wind(hours, th):
     lv = _band(w, th["wind_kn"]["amber"], th["wind_kn"]["red"])
     gusts = [h["gust"] for h in hours if h and h.get("gust") is not None]
     gust_txt = f"gusts to {max(gusts):.0f} kn" if gusts else ""
-    return factor(lv, f"{w:.0f} kn", f"Forecast wind up to {w:.0f} kn (amber ≥{th['wind_kn']['amber']}, red ≥{th['wind_kn']['red']})",
-                  gust_txt.capitalize())
+    reasons = [f"Forecast wind up to {w:.0f} kn (amber ≥{th['wind_kn']['amber']}, red ≥{th['wind_kn']['red']})",
+               gust_txt.capitalize()]
+    if warnings and within_warning_window:
+        for warn in warnings["severe_weather"]:
+            lv = RED
+            reasons.insert(0, f"Active BOM warning: {warn['title']}")
+    return factor(lv, f"{w:.0f} kn", *reasons)
 
 
 def eval_temp(hours, th):
@@ -89,31 +94,33 @@ def eval_rain(hours, th):
     return f
 
 
-def eval_storm(hours, day_text, warnings, th, within_warning_window):
+def eval_lightning(hours, day_text, warnings, th, within_warning_window):
+    """Lightning in the area is a definite no-go."""
+    lt = th["lightning"]
     lv, reasons = GREEN, []
     known = [h for h in hours if h]
     if any(h.get("code") in THUNDER_CODES for h in known):
-        lv = AMBER
-        reasons.append("Thunderstorm in hourly forecast")
-    cape_hit = [h for h in known if (h.get("cape") or 0) >= th["storm"]["cape_amber"]
-                and (h.get("rain") or 0) >= th["storm"]["cape_rain_mm"]]
-    if cape_hit:
-        lv = AMBER
-        reasons.append(f"Unstable air with rain (CAPE {max(h['cape'] for h in cape_hit):.0f})")
-    text = (day_text or "").lower()
-    hits = [k for k in th["storm"]["text_keywords_amber"] if k in text]
-    if hits:
-        lv = AMBER
-        reasons.append(f"BOM forecast mentions: {', '.join(hits)}")
+        lv = RED
+        reasons.append("Thunderstorm (lightning) forecast during the session")
     if within_warning_window:
-        for w in warnings["storm"]:
+        for w in warnings["thunderstorm"]:
             lv = RED
             reasons.append(f"Active BOM warning: {w['title']}")
+    cape_hit = [h for h in known if (h.get("cape") or 0) >= lt["cape_amber"] and (h.get("rain") or 0) >= lt["cape_rain_mm"]]
+    if cape_hit:
+        lv = worst(lv, AMBER)
+        reasons.append(f"Unstable air with rain – storms could develop (CAPE {max(h['cape'] for h in cape_hit):.0f})")
+    text = (day_text or "").lower()
+    hits = [k for k in lt["text_keywords_amber"] if k in text]
+    if hits:
+        lv = worst(lv, AMBER)
+        reasons.append(f"BOM forecast for the day mentions: {', '.join(hits)}")
     if not known and day_text is None:
-        return factor(UNKNOWN, "?", "No storm forecast available")
+        return factor(UNKNOWN, "?", "No thunderstorm forecast available")
     if not reasons:
-        reasons.append("No storms forecast")
-    return factor(lv, {GREEN: "None", AMBER: "Possible", RED: "Warning"}[lv], *reasons)
+        reasons.append("No thunderstorms forecast")
+    reasons.append("See lightning or hear thunder? Get off the water and wait 30 minutes after the last thunder.")
+    return factor(lv, {GREEN: "None", AMBER: "Possible", RED: "No go"}[lv], *reasons)
 
 
 def eval_visibility(hours, day_text, is_morning, th):
@@ -235,7 +242,7 @@ def eval_tide(start, end, extremes, lag_minutes, th):
 
 def classify_warnings(warnings):
     """Split BOM warnings into those relevant to the Maribyrnong and Melbourne."""
-    out = {"flood": [], "flood_watch": [], "storm": []}
+    out = {"flood": [], "flood_watch": [], "thunderstorm": [], "severe_weather": []}
     for w in warnings or []:
         t = w["title"]
         tl = t.lower()
@@ -245,8 +252,10 @@ def classify_warnings(warnings):
             out["flood"].append(w)
         elif "flood watch" in tl and ("central" in tl or "maribyrnong" in tl):
             out["flood_watch"].append(w)
-        elif ("severe thunderstorm" in tl or "severe weather" in tl) and ("central" in tl or "melbourne" in tl):
-            out["storm"].append(w)
+        elif "severe thunderstorm" in tl and ("central" in tl or "melbourne" in tl):
+            out["thunderstorm"].append(w)
+        elif "severe weather" in tl and ("central" in tl or "melbourne" in tl):
+            out["severe_weather"].append(w)
     return out
 
 
@@ -338,10 +347,10 @@ def evaluate_session(*, start, end, is_morning, hours, day_text, tides, warnings
                      flood, lat, lon, th, tide_lag, now):
     within_warning_window = start - now < timedelta(hours=24)
     factors = {
-        "wind": eval_wind(hours, th),
+        "wind": eval_wind(hours, th, warnings, within_warning_window),
         "temp": eval_temp(hours, th),
         "rain": eval_rain(hours, th),
-        "storm": eval_storm(hours, day_text, warnings, th, within_warning_window),
+        "lightning": eval_lightning(hours, day_text, warnings, th, within_warning_window),
         "visibility": eval_visibility(hours, day_text, is_morning, th),
         "darkness": eval_darkness(start, end, lat, lon, th, is_morning),
         "tide": eval_tide(start, end, tides, tide_lag, th),

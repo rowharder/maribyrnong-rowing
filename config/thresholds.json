@@ -16,13 +16,13 @@
     "amber": 2.0,
     "combo_min": 0.3
   },
-  "storm": {
+  "lightning": {
+    "_comment": "Red: thunderstorm forecast during the session, or a BOM Severe Thunderstorm Warning (next 24 h). Yellow: BOM's day forecast mentions these words, or unstable air (CAPE) with rain.",
     "cape_amber": 800,
     "cape_rain_mm": 0.2,
     "text_keywords_amber": [
-      "thunderstorm",
-      "storm",
-      "damaging winds",
+      "thunder",
+      "lightning",
       "hail"
     ]
   },

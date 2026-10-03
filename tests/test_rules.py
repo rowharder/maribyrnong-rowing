@@ -12,7 +12,7 @@ import rules  # noqa: E402
 TH = json.loads((Path(__file__).resolve().parent.parent / "config" / "thresholds.json").read_text())
 TZ = ZoneInfo("Australia/Melbourne")
 LAT, LON = -37.775, 144.892
-NO_WARNINGS = {"flood": [], "flood_watch": [], "storm": []}
+NO_WARNINGS = {"flood": [], "flood_watch": [], "thunderstorm": [], "severe_weather": []}
 CALM_RIVER = [{"role": "keilor", "name": "Keilor", "level_m": 0.4, "flow_m3s": 4, "rise_m_per_hr": 0.0}]
 HIGH_RIVER = [{"role": "keilor", "name": "Keilor", "level_m": 0.9, "flow_m3s": 30, "rise_m_per_hr": 0.0}]  # +0.35 m = yellow
 
@@ -126,6 +126,31 @@ class Single(unittest.TestCase):
     def test_drivers_name_the_river(self):
         r = session([hour()] * 3, morning="day", tides=RISING_TIDES, gauges=HIGH_RIVER)
         self.assertEqual(r["drivers"], ["River / flood"])
+
+
+    def test_thunderstorm_in_session_is_red(self):
+        r = session([hour(), hour(code=95), hour()], morning="day")
+        self.assertEqual(r["factors"]["lightning"]["level"], "red")
+        self.assertIn("Lightning", r["drivers"])
+
+    def test_thunder_in_day_text_is_amber(self):
+        r = session([hour()] * 3, morning="day", day_text="Possible thunderstorm in the afternoon.")
+        self.assertEqual(r["factors"]["lightning"]["level"], "amber")
+
+    def test_damaging_winds_text_does_not_affect_lightning(self):
+        r = session([hour()] * 3, morning="day", day_text="Damaging winds possible.")
+        self.assertEqual(r["factors"]["lightning"]["level"], "green")
+
+    def test_warnings_split_between_lightning_and_wind(self):
+        w = rules.classify_warnings([
+            {"title": "Severe Thunderstorm Warning for Central Forecast District", "link": ""},
+            {"title": "Severe Weather Warning for Central Forecast District", "link": ""},
+        ])
+        self.assertEqual(len(w["thunderstorm"]), 1)
+        self.assertEqual(len(w["severe_weather"]), 1)
+        r = session([hour()] * 3, morning="day", warnings=w)
+        self.assertEqual(r["factors"]["lightning"]["level"], "red")
+        self.assertEqual(r["factors"]["wind"]["level"], "red")
 
 
 class Combinations(unittest.TestCase):
