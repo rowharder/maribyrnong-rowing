@@ -172,22 +172,25 @@ def sun_crossing(day_start: datetime, lat, lon, angle, rising):
 
 
 def eval_darkness(start, end, lat, lon, th, is_morning):
-    samples = [start + timedelta(minutes=m) for m in range(0, int((end - start).total_seconds() // 60) + 1, 10)]
-    elevs = [sun_elevation(t, lat, lon) for t in samples]
-    low = min(elevs)
+    """Dark = any part of the session before first light or after last light (civil twilight)."""
     day0 = start.replace(hour=0, minute=0, second=0, microsecond=0)
-    sunrise = sun_crossing(day0, lat, lon, -0.833, rising=True)
-    sunset = sun_crossing(day0, lat, lon, -0.833, rising=False)
-    civil = sun_crossing(day0, lat, lon, th["darkness"]["dark_below_deg"], rising=is_morning)
-    sun_txt = f"Sunrise {sunrise:%H:%M}" if is_morning and sunrise else (f"Sunset {sunset:%H:%M}" if sunset else "")
-    if low < th["darkness"]["dark_below_deg"]:
-        dark = [t for t, e in zip(samples, elevs) if e < th["darkness"]["dark_below_deg"]]
-        light_txt = (f"First light (civil twilight) {civil:%H:%M}" if is_morning else f"Last light (civil twilight) {civil:%H:%M}") if civil else ""
-        f = factor(th["darkness"]["alone_level"], "Lights on",
-                   f"Dark {dark[0]:%H:%M}–{dark[-1]:%H:%M} - boat lights required", light_txt, sun_txt)
+    angle = th["darkness"]["dark_below_deg"]
+    first_light = sun_crossing(day0, lat, lon, angle, rising=True)
+    last_light = sun_crossing(day0, lat, lon, angle, rising=False)
+    if first_light is None or last_light is None:
+        return factor(UNKNOWN, "?", "Could not calculate first/last light")
+    reasons = []
+    if start < first_light:
+        reasons.append(f"Starts before first light ({first_light:%H:%M}) – lights needed "
+                       f"{start:%H:%M}–{min(first_light, end):%H:%M}")
+    if end > last_light:
+        reasons.append(f"Runs past last light ({last_light:%H:%M}) – lights needed "
+                       f"{max(last_light, start):%H:%M}–{end:%H:%M}")
+    if reasons:
+        f = factor(th["darkness"]["alone_level"], "Lights on", *reasons)
         f["active"] = True
         return f
-    return factor(GREEN, "Light", sun_txt or "Daylight")
+    return factor(GREEN, "Light", f"First light {first_light:%H:%M}" if is_morning else f"Last light {last_light:%H:%M}")
 
 
 # ---------------------------------------------------------------- tide
@@ -331,4 +334,20 @@ def evaluate_session(*, start, end, is_morning, hours, day_text, tides, warnings
     }
     combos = apply_combinations(factors, th["combinations"])
     overall = worst(*(f["level"] for f in factors.values()))
-    return {"overall": overall, "factors": factors, "combinations": combos}
+    return {"overall": overall, "factors": factors, "combinations": combos,
+            "drivers": drivers(factors, overall)}
+
+
+def drivers(factors, overall):
+    """Short labels for what set the overall light, e.g. ["Dark + fog"] or ["Darkness", "River / flood"]."""
+    if overall == GREEN:
+        return []
+    labels = dict(FACTORS)
+    out = []
+    for k, f in factors.items():
+        if f["level"] != overall:
+            continue
+        name = f.get("combo") or labels[k]
+        if name not in out:
+            out.append(name)
+    return out

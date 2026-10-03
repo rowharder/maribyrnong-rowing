@@ -29,7 +29,7 @@ whole page is more than 3 hours old, every light turns grey.
 | Rain | ≥2 mm/hr | – |
 | Storms | thunderstorm forecast | BOM severe thunderstorm/weather warning (Central district) |
 | Fog / visibility | <2 km or fog forecast | <1 km |
-| Darkness | dark during session ("Lights on") | – (red with fog or rain) |
+| Darkness | any part of the session before first light or after last light (civil twilight) | – (red with fog or rain) |
 | Tide | outgoing, falling ≥0.1 m/hr | – |
 | River / flood | Keilor ≥1.5 m or ≥20 m³/s, upstream rising ≥0.2 m/hr, or Flood Watch | Keilor ≥3.5 m (minor flood), ≥60 m³/s, or a BOM Maribyrnong flood warning |
 

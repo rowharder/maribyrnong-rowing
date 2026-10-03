@@ -90,6 +90,26 @@ class Single(unittest.TestCase):
         self.assertNotEqual(r["overall"], "green")
 
 
+    def test_evening_just_past_last_light_is_amber(self):
+        # Mon 5 Oct: last light ~19:54, session ends 20:00.
+        start = datetime(2026, 10, 5, 18, 0, tzinfo=TZ)
+        end = datetime(2026, 10, 5, 20, 0, tzinfo=TZ)
+        f = rules.eval_darkness(start, end, LAT, LON, TH, is_morning=False)
+        self.assertEqual(f["level"], "amber")
+        self.assertIn("last light (19:5", f["reasons"][0])
+
+    def test_no_sunrise_sunset_wording(self):
+        for morning in (True, False):
+            r = session([hour()] * 3, morning=morning)
+            text = " ".join(r["factors"]["darkness"]["reasons"])
+            self.assertNotIn("Sunrise", text)
+            self.assertNotIn("Sunset", text)
+
+    def test_drivers_name_the_river(self):
+        r = session([hour()] * 3, morning="day", tides=RISING_TIDES, gauges=HIGH_RIVER)
+        self.assertEqual(r["drivers"], ["River / flood"])
+
+
 class Combinations(unittest.TestCase):
     def test_dark_plus_fog_is_red(self):
         r = session([hour(visibility=1500, code=45)] * 3, morning=True)

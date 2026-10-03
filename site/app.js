@@ -70,7 +70,9 @@
     html += `<tr class="overall"><th class="rowhead" scope="row">Overall</th>`;
     cols.forEach((c, i) => {
       const l = lv(c.overall);
-      html += `<td class="cell ${colClass(i)}${sel(i)}" data-col="${i}">${light(l, "light-lg")}<span class="word">${WORD[l]}</span></td>`;
+      const why = stale ? "" : (c.drivers || []).join(", ");
+      html += `<td class="cell ${colClass(i)}${sel(i)}" data-col="${i}">${light(l, "light-lg")}<span class="word">${WORD[l]}</span>${
+        why ? `<span class="drivers">${esc(why)}</span>` : ""}</td>`;
     });
     html += "</tr>";
 

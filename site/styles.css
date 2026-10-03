@@ -163,3 +163,4 @@ footer { padding-block: 8px 28px; color: var(--muted); font-size: .82rem; text-a
 .grid .rowhead a:hover { color: var(--accent); border-bottom-color: var(--accent); }
 .ext { font-size: .7em; margin-left: 3px; color: var(--accent); }
 .factor-list .check { margin-top: 4px; font-size: .8rem; color: var(--muted); }
+.drivers { display: block; font-size: .68rem; color: var(--ink-2); margin-top: 2px; line-height: 1.25; max-width: 7.5rem; margin-inline: auto; }
