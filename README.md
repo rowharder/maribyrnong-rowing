@@ -37,7 +37,7 @@ All numbers are in `config/thresholds.json`. In that file, `amber` means yellow.
 | Fog | visibility under 1,600 m, or fog forecast | visibility under 500 m |
 | Darkness | any part of the session before first light or after last light (civil twilight, sun 6° below the horizon) | – (see combinations) |
 | Tide | outgoing, falling 0.1 m/hr or faster (BOM Williamstown, in step with the course) | – (see combinations) |
-| Flood | Keilor 0.6 m or more, BOM Flood Watch, or an upstream gauge rising 0.2 m/hr or faster | Keilor 1.0 m or more, BOM Maribyrnong Flood Warning, or an upstream gauge rising 0.5 m/hr or faster |
+| Flood | Keilor 0.6 m or more, BOM Flood Watch (sessions in the next 24 h), or an upstream gauge rising 0.2 m/hr or faster | Keilor 1.0 m or more, BOM Maribyrnong Flood Warning, or an upstream gauge rising 0.5 m/hr or faster |
 
 **Combinations that are red** (in `combinations`). Each needs all of its factors at yellow or worse:
 

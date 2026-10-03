@@ -272,9 +272,10 @@ def classify_warnings(warnings):
     return out
 
 
-def eval_flood(gauges, warnings, th, forecast_level=None, forecast_note=""):
+def eval_flood(gauges, warnings, th, forecast_level=None, forecast_note="", watch_applies=True):
     """River state from the live Keilor reading, or `forecast_level` (predicted Keilor height
-    during a later session) when given."""
+    during a later session) when given. A BOM Flood Watch only counts if `watch_applies`
+    (sessions within the next 24 hours)."""
     ft = th["flood"]
     lv, reasons = GREEN, []
     keilor = next((g for g in gauges if g["role"] == "keilor"), None)
@@ -298,7 +299,7 @@ def eval_flood(gauges, warnings, th, forecast_level=None, forecast_note=""):
     for w in warnings["flood"]:
         lv = RED
         reasons.append(f"BOM warning: {warning_title(w)}")
-    for w in warnings["flood_watch"]:
+    for w in (warnings["flood_watch"] if watch_applies else []):
         lv = worst(lv, AMBER)
         reasons.append(f"BOM: {warning_title(w)}")
     if not keilor and not warnings["flood"]:

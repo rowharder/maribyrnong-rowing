@@ -91,6 +91,11 @@ class Single(unittest.TestCase):
         self.assertEqual(lv(0.99), "amber")
         self.assertEqual(lv(1.00), "red")
 
+    def test_flood_watch_only_counts_when_it_applies(self):
+        w = rules.classify_warnings([{"title": "Flood Watch for parts of Central Victoria", "link": ""}])
+        self.assertEqual(rules.eval_flood(CALM_RIVER, w, TH)["level"], "amber")
+        self.assertEqual(rules.eval_flood(CALM_RIVER, w, TH, watch_applies=False)["level"], "green")
+
     def test_maribyrnong_flood_warning_is_red(self):
         w = rules.classify_warnings([{"title": "03/10:00 EST Minor Flood Warning for the Maribyrnong River", "link": ""}])
         self.assertEqual(rules.eval_flood(CALM_RIVER, w, TH)["level"], "red")

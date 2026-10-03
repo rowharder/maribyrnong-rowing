@@ -194,8 +194,9 @@ def main():
             if end < now:
                 continue
             fc = forecast_level_for(river_fc, start, end, now)
-            session_flood = flood if fc is None else rules.eval_flood(
-                gauges, warnings, th, fc[0], fc[1])
+            soon = start - now < timedelta(hours=24)  # BOM Flood Watch only counts for the next 24 h
+            session_flood = rules.eval_flood(gauges, warnings, th, watch_applies=soon) if fc is None else \
+                rules.eval_flood(gauges, warnings, th, fc[0], fc[1], watch_applies=soon)
             result = rules.evaluate_session(
                 start=start, end=end, is_morning=s["id"] == "am",
                 hours=session_hours(forecast, start, end),
