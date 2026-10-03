@@ -69,7 +69,7 @@
       html += `<th scope="col" class="${colClass(i)}${sel(i)}" data-col="${i}">
         <span class="day">${esc(c.day_label)}</span>
         <span class="sess">${esc(c.session_label)}</span>
-        <span class="time">${esc(c.time_label)}</span></th>`;
+        <span class="time">${esc(c.time_label)}</span>${c.lights?.needed ? `<span class="lights">${esc(c.lights.short)}</span>` : ""}</th>`;
     });
     html += "</tr></thead><tbody>";
 
@@ -110,6 +110,10 @@
     const l = stale ? "unknown" : c.overall;
     let html = `<h2>${light(l)} ${esc(c.date_label)} · ${esc(c.session_label)} ${esc(c.time_label)} – ${WORD[l]}</h2>`;
     if (c.combinations?.length) html += `<p><strong>No-go combination:</strong> ${c.combinations.map(esc).join(", ")}</p>`;
+    if (c.lights) {
+      const ll = data.lights_link;
+      html += `<p class="lights-line">${esc(c.lights.detail)}${ll ? ` · <a href="${esc(ll.url)}" target="_blank" rel="noopener">${esc(ll.label)}</a>` : ""}</p>`;
+    }
     if (c.bom_text) html += `<p class="bom">BOM: “${esc(c.bom_text)}”</p>`;
     html += `<ul class="factor-list">`;
     data.factors.forEach((f) => {

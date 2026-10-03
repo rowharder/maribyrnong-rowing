@@ -78,6 +78,8 @@ section { margin-block: 18px; }
 .grid thead .day { display: block; font-size: .9rem; color: var(--ink); }
 .grid thead .sess { display: block; color: var(--ink-2); font-weight: 500; }
 .grid thead .time { display: block; color: var(--muted); font-weight: 400; font-size: .75rem; }
+.grid thead .lights { display: block; color: var(--ink-2); font-weight: 500; font-size: .7rem; margin-top: 2px; line-height: 1.2; }
+.lights-line { margin: 0 0 10px; color: var(--ink-2); font-size: .9rem; }
 .grid .rowhead {
   text-align: left; font-weight: 500; color: var(--ink-2); font-size: .85rem; white-space: nowrap;
   position: sticky; left: 0; background: var(--surface); z-index: 1; padding-left: 12px;

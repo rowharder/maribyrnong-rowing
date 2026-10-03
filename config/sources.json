@@ -135,12 +135,6 @@
         "url": "https://www.bom.gov.au/products/IDV60901/IDV60901.95866.shtml"
       }
     ],
-    "darkness": [
-      {
-        "label": "Sunrise & sunset – Maribyrnong",
-        "url": "https://sunrisesunset.willyweather.com.au/vic/melbourne/maribyrnong.html"
-      }
-    ],
     "tide": [
       {
         "label": "BOM tides – Williamstown",
@@ -207,5 +201,9 @@
         "longitude": 144.84
       }
     ]
+  },
+  "lights_link": {
+    "label": "Sunrise & sunset – Maribyrnong",
+    "url": "https://sunrisesunset.willyweather.com.au/vic/melbourne/maribyrnong.html"
   }
 }

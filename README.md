@@ -13,7 +13,9 @@ Guide only. The coach or captain makes the call.
   - weekday mornings 05:30–07:00
   - weekend mornings 06:30–08:00
   - evenings 18:00–20:00
-- One **row per factor**: Wind, Temperature, Rain, Lightning, Fog, Darkness, Tide, Flood.
+- One **row per factor**: Wind, Temperature, Rain, Lightning, Fog, Tide, Flood.
+- A **Lights** note under the session time ("Lights to 06:24" / "Lights from 19:54") when any part of the
+  session is before first light or after last light (civil twilight). It's information, not a light.
 - An **Overall** light per column (the worst factor), with the factors that set it listed underneath.
 - **Tap a column** for the reasons behind each light. **Tap a row name ↗** to open the source page and check it.
 - A **Right now** section:
@@ -21,7 +23,7 @@ Guide only. The coach or captain makes the call.
   - river gauges
   - Keilor level forecast chart
   - tide at the course (measured and predicted)
-- Lights: green = Go, yellow = Caution, red = No go, grey = No data.
+- Colours: green = Go, yellow = Caution, red = No go, grey = No data.
   - If the whole page is more than 8 hours old, every light goes grey.
 
 ## Rules
@@ -35,11 +37,11 @@ All numbers are in `config/thresholds.json`. In that file, `amber` means yellow.
 | Rain | 2 mm/hr or more | – (see combinations) |
 | Lightning | BOM day forecast mentions thunder, lightning or hail, or unstable air with rain | thunderstorm forecast during the session, or a BOM Severe Thunderstorm Warning (Central) |
 | Fog | visibility under 1,600 m, or fog forecast | visibility under 500 m |
-| Darkness | any part of the session before first light or after last light (civil twilight, sun 6° below the horizon) | – (see combinations) |
 | Tide | outgoing, falling 0.1 m/hr or faster (BOM Williamstown, in step with the course) | – (see combinations) |
 | Flood | Keilor 0.6 m or more, BOM Flood Watch (sessions in the next 24 h), or an upstream gauge rising 0.2 m/hr or faster | Keilor 1.0 m or more, BOM Maribyrnong Flood Warning, or an upstream gauge rising 0.5 m/hr or faster |
 
-**Combinations that are red** (in `combinations`). Each needs all of its factors at yellow or worse:
+**Combinations that are red** (in `combinations`). Each needs all of its factors at yellow or worse
+(darkness counts when lights are needed):
 
 - Dark + fog
 - Dark + rain (rain counts here from 0.3 mm/hr)

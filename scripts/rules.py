@@ -18,7 +18,6 @@ FACTORS = [
     ("rain", "Rain"),
     ("lightning", "Lightning"),
     ("visibility", "Fog"),
-    ("darkness", "Darkness"),
     ("tide", "Tide"),
     ("flood", "Flood"),
 ]
@@ -188,25 +187,29 @@ def sun_crossing(day_start: datetime, lat, lon, angle, rising):
 
 
 def eval_darkness(start, end, lat, lon, th, is_morning):
-    """Dark = any part of the session before first light or after last light (civil twilight)."""
+    """When boat lights are needed: any part of the session before first light or after last light
+    (civil twilight). Not a traffic light on its own - it only matters in combinations (dark + fog,
+    dark + rain). Returns a factor flagged `active` when dark, plus a `lights` note for the page."""
     day0 = start.replace(hour=0, minute=0, second=0, microsecond=0)
     angle = th["darkness"]["dark_below_deg"]
     first_light = sun_crossing(day0, lat, lon, angle, rising=True)
     last_light = sun_crossing(day0, lat, lon, angle, rising=False)
     if first_light is None or last_light is None:
-        return factor(UNKNOWN, "?", "Could not calculate first/last light")
-    reasons = []
-    if start < first_light:
-        reasons.append(f"Before first light ({first_light:%H:%M}) – lights needed "
-                       f"{start:%H:%M}–{min(first_light, end):%H:%M}")
-    if end > last_light:
-        reasons.append(f"After last light ({last_light:%H:%M}) – lights needed "
-                       f"{max(last_light, start):%H:%M}–{end:%H:%M}")
-    if reasons:
-        f = factor(th["darkness"]["alone_level"], "Lights on", *reasons)
-        f["active"] = True
+        f = factor(UNKNOWN, "?", "Could not work out first/last light")
+        f["lights"] = None
         return f
-    return factor(GREEN, "Light", f"First light {first_light:%H:%M}" if is_morning else f"Last light {last_light:%H:%M}")
+    short, detail = [], []
+    if start < first_light:
+        short.append(f"Lights to {min(first_light, end):%H:%M}")
+        detail.append(f"Lights needed {start:%H:%M}–{min(first_light, end):%H:%M} (first light {first_light:%H:%M})")
+    if end > last_light:
+        short.append(f"Lights from {max(last_light, start):%H:%M}")
+        detail.append(f"Lights needed {max(last_light, start):%H:%M}–{end:%H:%M} (last light {last_light:%H:%M})")
+    f = factor(GREEN, "Dark" if short else "Light", *detail)
+    f["active"] = bool(short)
+    f["lights"] = {"needed": bool(short), "short": " · ".join(short), "detail": "; ".join(detail)} if short else \
+        {"needed": False, "short": "", "detail": f"No lights needed (first light {first_light:%H:%M}, last light {last_light:%H:%M})"}
+    return f
 
 
 # ---------------------------------------------------------------- tide
@@ -319,7 +322,7 @@ def is_active(f):
 def apply_combinations(factors, combos):
     """Raise factors to red when dangerous conditions occur together.
 
-    Each combo lists groups like ["darkness", "rain"] or ["fog", "visibility|rain"];
+    Each combo lists groups like ["darkness", "rain"] or ["rain", "wind|lightning"];
     '|' means any of those factors satisfies that slot.
     """
     hits = []
@@ -348,18 +351,19 @@ def evaluate_session(*, start, end, is_morning, hours, day_text, tides, warnings
         "rain": eval_rain(hours, th),
         "lightning": eval_lightning(hours, day_text, warnings, th, within_warning_window),
         "visibility": eval_visibility(hours, day_text, is_morning, th),
-        "darkness": eval_darkness(start, end, lat, lon, th, is_morning),
         "tide": eval_tide(start, end, tides, tide_lag, th),
         "flood": copy.deepcopy(flood),
     }
-    combos = apply_combinations(factors, th["combinations"])
+    # Darkness isn't a light of its own, but takes part in combinations (dark + fog, dark + rain).
+    dark = eval_darkness(start, end, lat, lon, th, is_morning)
+    combos = apply_combinations({**factors, "darkness": dark}, th["combinations"])
     overall = worst(*(f["level"] for f in factors.values()))
     return {"overall": overall, "factors": factors, "combinations": combos,
-            "drivers": drivers(factors, overall)}
+            "drivers": drivers(factors, overall), "lights": dark["lights"]}
 
 
 def drivers(factors, overall):
-    """Short labels for what set the overall light, e.g. ["Dark + fog"] or ["Darkness", "Flood"]."""
+    """Short labels for what set the overall light, e.g. ["Dark + fog"] or ["Wind", "Flood"]."""
     if overall == GREEN:
         return []
     labels = dict(FACTORS)

@@ -72,11 +72,17 @@ class Single(unittest.TestCase):
         self.assertEqual(rules.eval_temp([hour(temp=9)], TH)["level"], "amber")
         self.assertEqual(rules.eval_temp([hour(temp=10)], TH)["level"], "green")
 
-    def test_dark_alone_is_amber(self):
+    def test_dark_alone_is_just_a_lights_note(self):
         r = session([hour()] * 3, morning=True)
-        self.assertTrue(r["factors"]["darkness"].get("active"))
-        self.assertEqual(r["factors"]["darkness"]["level"], "amber")
-        self.assertEqual(r["overall"], "amber", r)
+        self.assertNotIn("darkness", r["factors"])
+        self.assertEqual(r["overall"], "green", r)
+        self.assertTrue(r["lights"]["needed"])
+        self.assertRegex(r["lights"]["short"], r"^Lights to 06:\d\d$")
+
+    def test_daylight_session_needs_no_lights(self):
+        r = session([hour()] * 3, morning="day")
+        self.assertFalse(r["lights"]["needed"])
+        self.assertEqual(r["lights"]["short"], "")
 
     def test_outgoing_tide_alone_is_amber(self):
         r = session([hour()] * 3, morning="day", tides=EBB_TIDES)
@@ -113,20 +119,15 @@ class Single(unittest.TestCase):
         self.assertNotEqual(r["overall"], "green")
 
 
-    def test_evening_just_past_last_light_is_amber(self):
+    def test_evening_just_past_last_light_needs_lights(self):
         # Mon 5 Oct: last light ~19:54, session ends 20:00.
         start = datetime(2026, 10, 5, 18, 0, tzinfo=TZ)
         end = datetime(2026, 10, 5, 20, 0, tzinfo=TZ)
         f = rules.eval_darkness(start, end, LAT, LON, TH, is_morning=False)
-        self.assertEqual(f["level"], "amber")
-        self.assertIn("last light (19:5", f["reasons"][0])
-
-    def test_no_sunrise_sunset_wording(self):
-        for morning in (True, False):
-            r = session([hour()] * 3, morning=morning)
-            text = " ".join(r["factors"]["darkness"]["reasons"])
-            self.assertNotIn("Sunrise", text)
-            self.assertNotIn("Sunset", text)
+        self.assertTrue(f["active"])
+        self.assertRegex(f["lights"]["short"], r"^Lights from 19:5\d$")
+        self.assertIn("last light 19:5", f["lights"]["detail"])
+        self.assertNotIn("Sunset", f["lights"]["detail"])
 
     def test_drivers_name_the_river(self):
         r = session([hour()] * 3, morning="day", tides=RISING_TIDES, gauges=HIGH_RIVER)
@@ -163,11 +164,14 @@ class Combinations(unittest.TestCase):
         r = session([hour(visibility=1500, code=45)] * 3, morning=True)
         self.assertEqual(r["overall"], "red")
         self.assertIn("Dark + fog", r["combinations"])
+        self.assertEqual(r["factors"]["visibility"]["level"], "red")
+        self.assertEqual(r["drivers"], ["Dark + fog"])
 
     def test_dark_plus_light_rain_is_red(self):
         r = session([hour(rain=0.5)] * 3, morning=True)
         self.assertIn("Dark + rain", r["combinations"])
         self.assertEqual(r["overall"], "red")
+        self.assertEqual(r["factors"]["rain"]["level"], "red")
 
     def test_rain_plus_wind_is_red(self):
         r = session([hour(rain=0.5, wind=12)] * 3, morning="day")

@@ -225,6 +225,7 @@ def main():
         "site_version": site_version(),
         "location": loc["name"],
         "factors": [{"id": k, "label": v, "links": src.get("verify_links", {}).get(k, [])} for k, v in rules.FACTORS],
+        "lights_link": src.get("lights_link"),
         "columns": columns,
         "now": {
             "observations": obs,
