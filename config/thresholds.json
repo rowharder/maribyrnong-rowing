@@ -4,10 +4,6 @@
     "amber": 10,
     "red": 15
   },
-  "gust_kn": {
-    "amber": 18,
-    "red": 25
-  },
   "heat_c": {
     "amber": 30,
     "red": 35
@@ -82,7 +78,7 @@
       "label": "Rain + wind",
       "factors": [
         "rain",
-        "wind|gust"
+        "wind"
       ],
       "why": "rough, wet conditions"
     },

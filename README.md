@@ -13,7 +13,7 @@ Every 30 minutes a GitHub Action runs `scripts/build.py`, which:
 1. fetches data from:
    - BOM: text forecast, Essendon Airport observations, Victorian warnings, Williamstown tide predictions
    - Melbourne Water: river gauges at Maribyrnong (tidal, ~700 m from Poyntons – shown as the measured tide), Keilor, Keilor North, Bulla North, Sunbury and Darraweit Guim
-   - Open-Meteo: hourly forecast for wind, gusts, temperature, rain, fog/visibility and storm potential
+   - Open-Meteo: hourly forecast for wind, temperature, rain, fog/visibility and storm potential
 2. applies the rules in `scripts/rules.py` using the numbers in `config/thresholds.json`,
 3. writes `site/data/latest.json` and publishes the `site/` folder to GitHub Pages.
 
@@ -25,7 +25,6 @@ whole page is more than 3 hours old, every light turns grey.
 | Factor | Amber | Red |
 |---|---|---|
 | Wind | ≥10 kn | ≥15 kn |
-| Gusts | ≥18 kn | ≥25 kn |
 | Temperature | ≥30 °C, or below 5 °C | ≥35 °C |
 | Rain | ≥2 mm/hr | – |
 | Storms | thunderstorm forecast | BOM severe thunderstorm/weather warning (Central district) |
@@ -38,10 +37,10 @@ whole page is more than 3 hours old, every light turns grey.
 
 - Dark + fog
 - Dark + rain (any rain from 0.3 mm/hr)
-- Rain + wind (or gusts) at amber
+- Rain + wind at amber
 - Outgoing tide + high river (river at amber or worse)
 
-Add your own combination by copying an entry. Use `"wind|gust"` to mean "either".
+Add your own combination by copying an entry. Use `"a|b"` to mean "either a or b".
 
 ## Running locally
 

@@ -79,16 +79,6 @@
         "url": "https://www.bom.gov.au/products/IDV60901/IDV60901.95866.shtml"
       }
     ],
-    "gust": [
-      {
-        "label": "WillyWeather wind – Maribyrnong",
-        "url": "https://wind.willyweather.com.au/vic/melbourne/maribyrnong.html"
-      },
-      {
-        "label": "BOM Essendon Airport observations",
-        "url": "https://www.bom.gov.au/products/IDV60901/IDV60901.95866.shtml"
-      }
-    ],
     "temp": [
       {
         "label": "BOM Melbourne forecast",

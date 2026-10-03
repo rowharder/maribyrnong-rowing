@@ -13,7 +13,6 @@ _RANK = {GREEN: 0, UNKNOWN: 1, AMBER: 2, RED: 3}
 # Row order on the dashboard.
 FACTORS = [
     ("wind", "Wind"),
-    ("gust", "Gusts"),
     ("temp", "Temperature"),
     ("rain", "Rain"),
     ("storm", "Storms"),
@@ -51,16 +50,10 @@ def eval_wind(hours, th):
         return factor(UNKNOWN, "?", "No wind forecast available")
     w = max(vals)
     lv = _band(w, th["wind_kn"]["amber"], th["wind_kn"]["red"])
-    return factor(lv, f"{w:.0f} kn", f"Forecast wind up to {w:.0f} kn (amber ≥{th['wind_kn']['amber']}, red ≥{th['wind_kn']['red']})")
-
-
-def eval_gust(hours, th):
-    vals = [h["gust"] for h in hours if h and h.get("gust") is not None]
-    if not vals:
-        return factor(UNKNOWN, "?", "No gust forecast available")
-    g = max(vals)
-    lv = _band(g, th["gust_kn"]["amber"], th["gust_kn"]["red"])
-    return factor(lv, f"{g:.0f} kn", f"Forecast gusts up to {g:.0f} kn (amber ≥{th['gust_kn']['amber']}, red ≥{th['gust_kn']['red']})")
+    gusts = [h["gust"] for h in hours if h and h.get("gust") is not None]
+    gust_txt = f"gusts to {max(gusts):.0f} kn" if gusts else ""
+    return factor(lv, f"{w:.0f} kn", f"Forecast wind up to {w:.0f} kn (amber ≥{th['wind_kn']['amber']}, red ≥{th['wind_kn']['red']})",
+                  gust_txt.capitalize())
 
 
 def eval_temp(hours, th):
@@ -303,7 +296,7 @@ def is_active(f):
 def apply_combinations(factors, combos):
     """Raise factors to red when dangerous conditions occur together.
 
-    Each combo lists groups like ["darkness", "rain"] or ["rain", "wind|gust"];
+    Each combo lists groups like ["darkness", "rain"] or ["fog", "visibility|rain"];
     '|' means any of those factors satisfies that slot.
     """
     hits = []
@@ -328,7 +321,6 @@ def evaluate_session(*, start, end, is_morning, hours, day_text, tides, warnings
     within_warning_window = start - now < timedelta(hours=24)
     factors = {
         "wind": eval_wind(hours, th),
-        "gust": eval_gust(hours, th),
         "temp": eval_temp(hours, th),
         "rain": eval_rain(hours, th),
         "storm": eval_storm(hours, day_text, warnings, th, within_warning_window),
