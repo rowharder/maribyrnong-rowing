@@ -128,7 +128,7 @@ def build_river_forecast(src, th, gauges, now, status):
         "with_rain": [{"time": iso(t), "level_m": round(level(q) + offset, 3)} for t, q in zip(future_hours, wet)],
         "no_rain": [{"time": iso(t), "level_m": round(level(q) + offset, 3)} for t, q in zip(future_hours, dry)],
         "rain_past_72h_mm": round(sum(past_rain[-72:]), 1),
-        "rain_next_72h_mm": round(sum(future_rain), 1),
+        "rain_next_72h_mm": round(sum(future_rain), 1) if future is not None else None,
         "thresholds": {"yellow": round(normal + band["amber"], 2), "red": round(normal + band["red"], 2)},
         "typical_error_m": model.get("validation_2025_2026", {}).get("rain", {}).get("typical_error_m"),
         "typical_error_high_river_m": model.get("validation_2025_2026", {}).get("rain", {}).get("typical_error_high_river_m"),

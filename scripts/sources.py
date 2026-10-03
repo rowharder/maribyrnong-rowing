@@ -5,6 +5,7 @@ catches them per source so one broken website never stops the whole update.
 """
 import json
 import re
+import time
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -15,12 +16,18 @@ USER_AGENT = "Mozilla/5.0 (compatible; MaribyrnongRowingDashboard/1.0)"
 TIMEOUT = 30
 
 
-def _get(url, params=None):
+def _get(url, params=None, attempts=2):
     if params:
         url = url + "?" + urllib.parse.urlencode(params)
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
-        return resp.read().decode("utf-8", errors="replace")
+    for attempt in range(attempts):
+        try:
+            with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
+                return resp.read().decode("utf-8", errors="replace")
+        except Exception:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(3)  # one retry for brief network hiccups
 
 
 def fetch_forecast(src):
