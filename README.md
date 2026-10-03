@@ -28,7 +28,7 @@ whole page is more than 3 hours old, every light turns grey.
 | Temperature | ≥30 °C, or below 10 °C | ≥35 °C |
 | Rain | ≥2 mm/hr | – |
 | Lightning | BOM day forecast mentions thunder/lightning/hail, or unstable air with rain | thunderstorm forecast during the session, or a BOM Severe Thunderstorm Warning (Central district) |
-| Fog / visibility | <2 km or fog forecast | <1 km |
+| Fog / visibility | visibility under 1,600 m, or fog in the forecast | visibility under 500 m |
 | Darkness | any part of the session before first light or after last light (civil twilight) | – (red with fog or rain) |
 | Tide | outgoing, falling ≥0.1 m/hr | – |
 | River / flood | Keilor gauge 0.5–1.0 m, upstream rising ≥0.2 m/hr, or BOM Flood Watch | Keilor gauge ≥1.0 m, upstream rising ≥0.5 m/hr, or a BOM Maribyrnong flood warning |

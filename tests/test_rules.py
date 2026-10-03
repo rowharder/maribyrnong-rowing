@@ -57,6 +57,15 @@ class Single(unittest.TestCase):
         self.assertEqual(rules.eval_wind([hour(wind=12)], TH)["level"], "amber")
         self.assertEqual(rules.eval_wind([hour(wind=16)], TH)["level"], "red")
 
+    def test_visibility_bands(self):
+        lv = lambda m: rules.eval_visibility([hour(visibility=m)], "", False, TH)
+        self.assertEqual(lv(1600)["level"], "green")
+        self.assertEqual(lv(1590)["level"], "amber")
+        self.assertEqual(lv(500)["level"], "amber")
+        self.assertEqual(lv(490)["level"], "red")
+        self.assertEqual(lv(1594)["value"], "1,590 m")
+        self.assertEqual(lv(4300)["value"], "4.3 km")
+
     def test_heat_and_cold(self):
         self.assertEqual(rules.eval_temp([hour(temp=36)], TH)["level"], "red")
         self.assertEqual(rules.eval_temp([hour(temp=31)], TH)["level"], "amber")

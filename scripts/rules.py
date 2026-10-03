@@ -123,25 +123,33 @@ def eval_lightning(hours, day_text, warnings, th, within_warning_window):
     return factor(lv, {GREEN: "None", AMBER: "Possible", RED: "No go"}[lv], *reasons)
 
 
+def _vis_text(m):
+    """Visibility as shown on the page: metres (to 10 m) under 2 km, otherwise km."""
+    return f"{m:,.0f} m" if m < 2000 else f"{m / 1000:.1f} km"
+
+
 def eval_visibility(hours, day_text, is_morning, th):
+    vt = th["visibility_m"]
     vals = [h["visibility"] for h in hours if h and h.get("visibility") is not None]
     lv, reasons = GREEN, []
+    v = None
     if vals:
-        v = min(vals)
-        lv = GREEN if v >= th["visibility_m"]["amber"] else (AMBER if v >= th["visibility_m"]["red"] else RED)
+        v = round(min(vals), -1)  # judge on the same rounded value we display
+        lv = GREEN if v >= vt["amber"] else (AMBER if v >= vt["red"] else RED)
         if lv != GREEN:
-            reasons.append(f"Forecast visibility down to {v/1000:.1f} km")
+            reasons.append(f"Forecast visibility down to {_vis_text(v)} "
+                           f"(yellow under {vt['amber']:,} m, red under {vt['red']:,} m)")
     if any(h and h.get("code") in FOG_CODES for h in hours):
         lv = worst(lv, AMBER)
         reasons.append("Fog in hourly forecast")
     if is_morning and any(k in (day_text or "").lower() for k in th["fog_keywords"]):
         lv = worst(lv, AMBER)
         reasons.append("BOM forecast mentions fog")
-    if not vals and not reasons:
+    if v is None and not reasons:
         return factor(UNKNOWN, "?", "No visibility forecast available")
     if not reasons:
-        reasons.append(f"Visibility {min(vals)/1000:.0f} km+")
-    value = f"{min(vals)/1000:.1f} km" if vals and min(vals) < 10000 else ("Fog" if lv != GREEN else "Good")
+        reasons.append(f"Visibility {_vis_text(v)}" if v < 10000 else "Visibility 10 km+")
+    value = (_vis_text(v) if v < 10000 else "Good") if v is not None else "Fog"
     return factor(lv, value, *reasons)
 
 

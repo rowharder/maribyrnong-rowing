@@ -27,8 +27,8 @@
     ]
   },
   "visibility_m": {
-    "amber": 2000,
-    "red": 1000
+    "amber": 1600,
+    "red": 500
   },
   "fog_keywords": [
     "fog"
