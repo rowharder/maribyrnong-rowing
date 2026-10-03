@@ -136,7 +136,8 @@ section { margin-block: 18px; }
 #sources { font-size: .82rem; padding-left: 18px; }
 .src-bad { color: var(--red); }
 
-footer { padding-block: 8px 28px; color: var(--muted); font-size: .82rem; text-align: center; }
+footer { padding-block: 8px 28px; color: var(--muted); font-size: .82rem; text-align: center; display: flex; flex-direction: column; gap: 4px; align-items: center; }
+.byline { font-size: .75rem; opacity: .8; }
 
 /* ---------- tide chart ---------- */
 .note-inline { color: var(--muted); font-size: .78rem; }
