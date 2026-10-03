@@ -31,10 +31,7 @@ whole page is more than 3 hours old, every light turns grey.
 | Fog / visibility | <2 km or fog forecast | <1 km |
 | Darkness | any part of the session before first light or after last light (civil twilight) | – (red with fog or rain) |
 | Tide | outgoing, falling ≥0.1 m/hr | – |
-| River / flood | Keilor 0.1–0.6 m above its normal for the time of year, upstream rising ≥0.2 m/hr, or BOM Flood Watch | Keilor ≥0.6 m above normal, upstream rising ≥0.5 m/hr, or a BOM Maribyrnong flood warning |
-
-Keilor's normal level changes with the season (about 0.28 m in summer to 0.46 m in August – median daily
-levels 2014–2026, in `flood.keilor_normal_by_month_m`), so the yellow/red heights move through the year.
+| River / flood | Keilor gauge 0.5–1.0 m, upstream rising ≥0.2 m/hr, or BOM Flood Watch | Keilor gauge ≥1.0 m, upstream rising ≥0.5 m/hr, or a BOM Maribyrnong flood warning |
 
 **Dangerous combinations turn red** (in `combinations`):
 

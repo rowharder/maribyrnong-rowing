@@ -2,7 +2,7 @@
 import json
 import sys
 import unittest
-from datetime import date, datetime
+from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -14,7 +14,7 @@ TZ = ZoneInfo("Australia/Melbourne")
 LAT, LON = -37.775, 144.892
 NO_WARNINGS = {"flood": [], "flood_watch": [], "thunderstorm": [], "severe_weather": []}
 CALM_RIVER = [{"role": "keilor", "name": "Keilor", "level_m": 0.4, "flow_m3s": 4, "rise_m_per_hr": 0.0}]
-HIGH_RIVER = [{"role": "keilor", "name": "Keilor", "level_m": 0.9, "flow_m3s": 30, "rise_m_per_hr": 0.0}]  # +0.35 m = yellow
+HIGH_RIVER = [{"role": "keilor", "name": "Keilor", "level_m": 0.8, "flow_m3s": 30, "rise_m_per_hr": 0.0}]  # yellow
 
 
 def hour(**kw):
@@ -41,7 +41,7 @@ def session(hours, *, morning=True, tides=RISING_TIDES, gauges=CALM_RIVER, warni
     # Daytime variant (no darkness) for isolating other rules.
     if morning == "day":
         start, end = datetime(2026, 10, 10, 10, 0, tzinfo=TZ), datetime(2026, 10, 10, 11, 30, tzinfo=TZ)
-    flood = rules.eval_flood(gauges, warnings, TH, on=start.date())
+    flood = rules.eval_flood(gauges, warnings, TH)
     return rules.evaluate_session(start=start, end=end, is_morning=bool(morning), hours=hours, day_text=day_text,
                                   tides=tides, warnings=warnings, flood=flood, lat=LAT, lon=LON, th=TH,
                                   tide_lag=0, now=start)
@@ -73,23 +73,13 @@ class Single(unittest.TestCase):
         self.assertEqual(r["factors"]["tide"]["level"], "amber")
         self.assertEqual(r["overall"], "amber")
 
-    def test_keilor_height_above_normal_bands(self):
-        on = date(2026, 10, 15)
+    def test_keilor_level_bands(self):
         def lv(level):
-            return rules.eval_flood([{"role": "keilor", "name": "Keilor", "level_m": level}], NO_WARNINGS, TH, on=on)["level"]
-        normal = rules.keilor_normal(TH, on)
-        self.assertEqual(lv(normal + 0.05), "green")
-        self.assertEqual(lv(normal + 0.3), "amber")
-        self.assertEqual(lv(normal + 0.55), "amber")
-        self.assertEqual(lv(normal + 0.65), "red")
-
-    def test_seasonal_normal(self):
-        self.assertEqual(rules.keilor_normal(TH, date(2026, 1, 15)), 0.28)
-        self.assertEqual(rules.keilor_normal(TH, date(2026, 8, 15)), 0.46)
-        mid = rules.keilor_normal(TH, date(2026, 8, 31))      # between Aug (0.46) and Sep (0.43)
-        self.assertTrue(0.43 <= mid <= 0.46)
-        self.assertTrue(0.28 <= rules.keilor_normal(TH, date(2026, 12, 31)) <= 0.33)  # Dec -> Jan
-        self.assertTrue(0.28 <= rules.keilor_normal(TH, date(2026, 1, 2)) <= 0.33)
+            return rules.eval_flood([{"role": "keilor", "name": "Keilor", "level_m": level}], NO_WARNINGS, TH)["level"]
+        self.assertEqual(lv(0.49), "green")
+        self.assertEqual(lv(0.50), "amber")
+        self.assertEqual(lv(0.99), "amber")
+        self.assertEqual(lv(1.00), "red")
 
     def test_maribyrnong_flood_warning_is_red(self):
         w = rules.classify_warnings([{"title": "03/10:00 EST Minor Flood Warning for the Maribyrnong River", "link": ""}])
