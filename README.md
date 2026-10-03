@@ -31,7 +31,7 @@ whole page is more than 3 hours old, every light turns grey.
 | Fog / visibility | <2 km or fog forecast | <1 km |
 | Darkness | any part of the session before first light or after last light (civil twilight) | – (red with fog or rain) |
 | Tide | outgoing, falling ≥0.1 m/hr | – |
-| River / flood | Keilor ≥1.5 m or ≥20 m³/s, upstream rising ≥0.2 m/hr, or Flood Watch | Keilor ≥3.5 m (minor flood), ≥60 m³/s, or a BOM Maribyrnong flood warning |
+| River / flood | Keilor 0.1–0.5 m above normal (0.55 m), upstream rising ≥0.2 m/hr, or BOM Flood Watch | Keilor ≥0.5 m above normal, upstream rising ≥0.5 m/hr, or a BOM Maribyrnong flood warning |
 
 **Dangerous combinations turn red** (in `combinations`):
 

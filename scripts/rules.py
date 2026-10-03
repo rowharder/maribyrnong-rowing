@@ -255,16 +255,14 @@ def eval_flood(gauges, warnings, th):
     ft = th["flood"]
     lv, reasons = GREEN, []
     keilor = next((g for g in gauges if g["role"] == "keilor"), None)
+    above = None
     if keilor:
-        lvl = _band(keilor["level_m"], ft["keilor_level_m"]["amber"], ft["keilor_level_m"]["red"])
-        if lvl != GREEN:
-            reasons.append(f"Keilor level {keilor['level_m']:.2f} m (amber ≥{ft['keilor_level_m']['amber']}, minor flood {ft['keilor_level_m']['red']})")
-        lv = worst(lv, lvl)
-        if keilor.get("flow_m3s") is not None:
-            flv = _band(keilor["flow_m3s"], ft["keilor_flow_m3s"]["amber"], ft["keilor_flow_m3s"]["red"])
-            if flv != GREEN:
-                reasons.append(f"Keilor flow {keilor['flow_m3s']:.0f} m³/s (amber ≥{ft['keilor_flow_m3s']['amber']}, red ≥{ft['keilor_flow_m3s']['red']})")
-            lv = worst(lv, flv)
+        normal = ft["keilor_normal_m"]
+        band = ft["keilor_above_normal_m"]
+        above = keilor["level_m"] - normal
+        lv = _band(above, band["amber"], band["red"])
+        reasons.append(f"Keilor {keilor['level_m']:.2f} m = {above:+.2f} m vs normal ({normal} m). "
+                       f"Green under +{band['amber']}, yellow under +{band['red']}, red from +{band['red']}")
     for g in gauges:
         rise = g.get("rise_m_per_hr")
         if rise is None or g["role"] == "course":
@@ -282,10 +280,7 @@ def eval_flood(gauges, warnings, th):
     if not keilor and not warnings["flood"]:
         lv = worst(lv, UNKNOWN)
         reasons.append("Keilor gauge unavailable - check river manually")
-    if not reasons:
-        reasons.append(f"Keilor {keilor['level_m']:.2f} m, normal")
-    value = f"{keilor['flow_m3s']:.0f} m³/s" if keilor and keilor.get("flow_m3s") is not None else (
-        f"{keilor['level_m']:.2f} m" if keilor else "?")
+    value = f"{above:+.2f} m" if above is not None else "?"
     return factor(lv, value, *reasons)
 
 

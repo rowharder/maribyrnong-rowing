@@ -14,7 +14,7 @@ TZ = ZoneInfo("Australia/Melbourne")
 LAT, LON = -37.775, 144.892
 NO_WARNINGS = {"flood": [], "flood_watch": [], "storm": []}
 CALM_RIVER = [{"role": "keilor", "name": "Keilor", "level_m": 0.6, "flow_m3s": 4, "rise_m_per_hr": 0.0}]
-HIGH_RIVER = [{"role": "keilor", "name": "Keilor", "level_m": 1.8, "flow_m3s": 30, "rise_m_per_hr": 0.0}]
+HIGH_RIVER = [{"role": "keilor", "name": "Keilor", "level_m": 0.9, "flow_m3s": 30, "rise_m_per_hr": 0.0}]  # +0.35 m = yellow
 
 
 def hour(**kw):
@@ -72,6 +72,14 @@ class Single(unittest.TestCase):
         r = session([hour()] * 3, morning="day", tides=EBB_TIDES)
         self.assertEqual(r["factors"]["tide"]["level"], "amber")
         self.assertEqual(r["overall"], "amber")
+
+    def test_keilor_height_above_normal_bands(self):
+        def lv(level):
+            return rules.eval_flood([{"role": "keilor", "name": "Keilor", "level_m": level}], NO_WARNINGS, TH)["level"]
+        normal = TH["flood"]["keilor_normal_m"]
+        self.assertEqual(lv(normal + 0.05), "green")
+        self.assertEqual(lv(normal + 0.3), "amber")
+        self.assertEqual(lv(normal + 0.6), "red")
 
     def test_maribyrnong_flood_warning_is_red(self):
         w = rules.classify_warnings([{"title": "03/10:00 EST Minor Flood Warning for the Maribyrnong River", "link": ""}])
