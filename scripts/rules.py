@@ -259,10 +259,11 @@ def eval_flood(gauges, warnings, th):
     if keilor:
         normal = ft["keilor_normal_m"]
         band = ft["keilor_above_normal_m"]
-        above = keilor["level_m"] - normal
+        above = round(keilor["level_m"] - normal, 2)  # judge on the same rounded value we display
         lv = _band(above, band["amber"], band["red"])
-        reasons.append(f"Keilor {keilor['level_m']:.2f} m = {above:+.2f} m vs normal ({normal} m). "
-                       f"Green under +{band['amber']}, yellow under +{band['red']}, red from +{band['red']}")
+        reasons.append(f"Keilor gauge {keilor['level_m']:.2f} m = {above:.2f} m above normal ({normal} m). "
+                       f"Green under {normal + band['amber']:.2f} m, yellow under {normal + band['red']:.2f} m, "
+                       f"red from {normal + band['red']:.2f} m")
     for g in gauges:
         rise = g.get("rise_m_per_hr")
         if rise is None or g["role"] == "course":
@@ -280,7 +281,7 @@ def eval_flood(gauges, warnings, th):
     if not keilor and not warnings["flood"]:
         lv = worst(lv, UNKNOWN)
         reasons.append("Keilor gauge unavailable - check river manually")
-    value = f"{above:+.2f} m" if above is not None else "?"
+    value = f"Keilor {keilor['level_m']:.2f} m" if keilor else "?"
     return factor(lv, value, *reasons)
 
 
