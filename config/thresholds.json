@@ -43,8 +43,21 @@
     "amber": 0.1
   },
   "flood": {
-    "_comment": "River height at Keilor measured ABOVE its normal level. Green under 0.1 m above normal, yellow under 0.6 m, red from 0.6 m. 'keilor_normal_m' was the median of daily levels Jul–Oct 2026.",
-    "keilor_normal_m": 0.55,
+    "_comment": "Keilor height ABOVE its normal level for the time of year. Green under +0.1 m, yellow under +0.6 m, red from +0.6 m. Normal = median daily Keilor level for each month, 2014–2026 (blended smoothly between months).",
+    "keilor_normal_by_month_m": {
+      "1": 0.28,
+      "2": 0.29,
+      "3": 0.28,
+      "4": 0.31,
+      "5": 0.36,
+      "6": 0.39,
+      "7": 0.43,
+      "8": 0.46,
+      "9": 0.43,
+      "10": 0.37,
+      "11": 0.35,
+      "12": 0.33
+    },
     "keilor_above_normal_m": {
       "amber": 0.1,
       "red": 0.6

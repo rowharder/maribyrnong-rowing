@@ -116,7 +116,7 @@ def build_river_forecast(src, th, gauges, now, status):
     wet = river_model.forecast(model, q_now, q_3h, past_rain, future_rain, horizon)
     dry = river_model.forecast(model, q_now, q_3h, past_rain, [0.0] * horizon, horizon)
     iso = lambda t: t.isoformat(timespec="minutes")
-    normal = th["flood"]["keilor_normal_m"]
+    normal = rules.keilor_normal(th, now.date())
     band = th["flood"]["keilor_above_normal_m"]
     # Shift so the forecast starts exactly at the measured level (rating curve isn't perfect).
     offset = keilor["level_m"] - level(keilor["flow_m3s"])
@@ -184,7 +184,7 @@ def main():
     if raw_warnings is None:
         # Can't see warnings: flag it rather than silently assuming none.
         warnings["flood_watch"].append({"title": "BOM warnings feed unavailable - check bom.gov.au", "link": ""})
-    flood = rules.eval_flood(gauges, warnings, th)
+    flood = rules.eval_flood(gauges, warnings, th, on=today)
     river_fc = build_river_forecast(src, th, gauges, now, status)
 
     columns = []
@@ -197,8 +197,8 @@ def main():
             if end < now:
                 continue
             fc = forecast_level_for(river_fc, start, end, now)
-            session_flood = flood if fc is None else rules.eval_flood(
-                gauges, warnings, th, fc[0], f"{fc[1]} ~{fc[0]:.2f} m")
+            session_flood = rules.eval_flood(gauges, warnings, th, on=day) if fc is None else rules.eval_flood(
+                gauges, warnings, th, fc[0], f"{fc[1]} ~{fc[0]:.2f} m", on=day)
             result = rules.evaluate_session(
                 start=start, end=end, is_morning=s["id"] == "am",
                 hours=session_hours(forecast, start, end),

@@ -5,7 +5,7 @@ Levels: "green", "amber", "red", or "unknown" (data missing - check manually).
 """
 import copy
 import math
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 GREEN, AMBER, RED, UNKNOWN = "green", "amber", "red", "unknown"
 _RANK = {GREEN: 0, UNKNOWN: 1, AMBER: 2, RED: 3}
@@ -250,23 +250,37 @@ def classify_warnings(warnings):
     return out
 
 
-def eval_flood(gauges, warnings, th, forecast_level=None, forecast_note=""):
-    """River state. Uses the live Keilor reading, or `forecast_level` (predicted Keilor height
-    during a later session) when given."""
+def keilor_normal(th, on: date):
+    """Typical Keilor level for this time of year, blending between mid-month values."""
+    by_month = th["flood"]["keilor_normal_by_month_m"]
+
+    def mid(year, month):  # 15th of a month, allowing month 0 / 13 to step across the year end
+        year, month = year + (month - 1) // 12, (month - 1) % 12 + 1
+        return date(year, month, 15), by_month[str(month)]
+
+    here, v_here = mid(on.year, on.month)
+    there, v_there = mid(on.year, on.month + (1 if on >= here else -1))
+    f = abs((on - here).days) / abs((there - here).days)
+    return round(v_here * (1 - f) + v_there * f, 2)
+
+
+def eval_flood(gauges, warnings, th, forecast_level=None, forecast_note="", on=None):
+    """River state on date `on` (default today). Uses the live Keilor reading, or `forecast_level`
+    (predicted Keilor height during a later session) when given."""
     ft = th["flood"]
     lv, reasons = GREEN, []
     keilor = next((g for g in gauges if g["role"] == "keilor"), None)
     above = None
     if keilor:
-        normal = ft["keilor_normal_m"]
+        normal = keilor_normal(th, on or date.today())
         band = ft["keilor_above_normal_m"]
         height = keilor["level_m"] if forecast_level is None else forecast_level
         above = round(height - normal, 2)  # judge on the same rounded value we display
         lv = _band(above, band["amber"], band["red"])
         what = "Keilor gauge" if forecast_level is None else "Forecast Keilor"
-        reasons.append(f"{what} {height:.2f} m = {above:.2f} m above normal ({normal} m). "
+        reasons.append(f"{what} {height:.2f} m = {above:.2f} m above normal ({normal:.2f} m). "
                        f"Green under {normal + band['amber']:.2f} m, yellow under {normal + band['red']:.2f} m, "
-                       f"red from {normal + band['red']:.2f} m")
+                       f"red from {normal + band['red']:.2f} m (normal for {on or date.today():%d %b})")
         if forecast_level is not None:
             reasons.append(f"{forecast_note} (now {keilor['level_m']:.2f} m) - experimental forecast")
     for g in gauges:
