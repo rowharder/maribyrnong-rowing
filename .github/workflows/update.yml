@@ -47,6 +47,13 @@ jobs:
             git add .github/keepalive && git commit -m "Keepalive" && git push
           fi
 
+      # Version the page's code files so browsers fetch new code after each change.
+      - name: Stamp code version
+        run: |
+          V=$(python -c "import json; print(json.load(open('site/data/latest.json'))['site_version'])")
+          sed -i -E "s/(app\.js|styles\.css|config\.js)\"/\1?v=$V\"/g" site/index.html
+          grep -E "app.js|styles.css|config.js" site/index.html
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site

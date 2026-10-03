@@ -145,6 +145,15 @@ def forecast_level_for(river_fc, start, end, now):
     return max(vals) if vals else None
 
 
+def site_version():
+    """Short fingerprint of the page code, so open pages can tell when it changed."""
+    import hashlib
+    h = hashlib.sha1()
+    for name in ("index.html", "app.js", "styles.css", "config.js"):
+        h.update((ROOT / "site" / name).read_bytes())
+    return h.hexdigest()[:10]
+
+
 def main():
     src, th = load("sources.json"), load("thresholds.json")
     loc = src["location"]
@@ -209,6 +218,7 @@ def main():
     next_tides = [t for t in tides if datetime.fromisoformat(t["time"]) > now][:4]
     out = {
         "generated_at": now.isoformat(timespec="minutes"),
+        "site_version": site_version(),
         "location": loc["name"],
         "factors": [{"id": k, "label": v, "links": src.get("verify_links", {}).get(k, [])} for k, v in rules.FACTORS],
         "columns": columns,

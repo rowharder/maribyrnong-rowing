@@ -1,4 +1,6 @@
 (() => {
+  // Set by the publish step (app.js?v=...). Used to reload open pages when the code changes.
+  const MY_VERSION = new URL(document.currentScript.src).searchParams.get("v");
   const ICON = { green: "✓", amber: "!", red: "✕", unknown: "?" };
   const WORD = { green: "GO", amber: "CAUTION", red: "NO GO", unknown: "CHECK" };
   const LABEL = { green: "Go", amber: "Caution", red: "No go", unknown: "No data" };
@@ -16,6 +18,10 @@
     try {
       const res = await fetch(`data/latest.json?t=${Date.now()}`, { cache: "no-store" });
       data = await res.json();
+      if (MY_VERSION && data.site_version && data.site_version !== MY_VERSION) {
+        location.reload();
+        return;
+      }
       render();
     } catch (e) {
       $("updated").textContent = "Could not load conditions data.";
