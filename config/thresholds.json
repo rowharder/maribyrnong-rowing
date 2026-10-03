@@ -34,9 +34,9 @@
     "fog"
   ],
   "darkness": {
-    "_comment": "Sun angle in degrees. Below -6 (civil twilight) counts as dark. Dark alone is OK (alone_level) - it only matters in combinations.",
+    "_comment": "Sun angle in degrees. Below -6 (civil twilight) counts as dark. Dark alone = amber (lights required); dark + fog or dark + rain = red (see combinations).",
     "dark_below_deg": -6,
-    "alone_level": "green"
+    "alone_level": "amber"
   },
   "tide_ebb_m_per_hr": {
     "_comment": "An outgoing tide alone is amber. It turns red only in combination with high river flow (see combinations).",

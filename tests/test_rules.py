@@ -62,11 +62,11 @@ class Single(unittest.TestCase):
         self.assertEqual(rules.eval_temp([hour(temp=31)], TH)["level"], "amber")
         self.assertEqual(rules.eval_temp([hour(temp=3)], TH)["level"], "amber")
 
-    def test_dark_alone_is_ok(self):
+    def test_dark_alone_is_amber(self):
         r = session([hour()] * 3, morning=True)
         self.assertTrue(r["factors"]["darkness"].get("active"))
-        self.assertEqual(r["factors"]["darkness"]["level"], "green")
-        self.assertEqual(r["overall"], "green", r)
+        self.assertEqual(r["factors"]["darkness"]["level"], "amber")
+        self.assertEqual(r["overall"], "amber", r)
 
     def test_outgoing_tide_alone_is_amber(self):
         r = session([hour()] * 3, morning="day", tides=EBB_TIDES)
