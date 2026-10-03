@@ -86,8 +86,8 @@ class Single(unittest.TestCase):
     def test_keilor_level_bands(self):
         def lv(level):
             return rules.eval_flood([{"role": "keilor", "name": "Keilor", "level_m": level}], NO_WARNINGS, TH)["level"]
-        self.assertEqual(lv(0.49), "green")
-        self.assertEqual(lv(0.50), "amber")
+        self.assertEqual(lv(0.59), "green")
+        self.assertEqual(lv(0.60), "amber")
         self.assertEqual(lv(0.99), "amber")
         self.assertEqual(lv(1.00), "red")
 

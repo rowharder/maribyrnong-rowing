@@ -31,7 +31,7 @@ whole page is more than 3 hours old, every light turns grey.
 | Fog | visibility under 1,600 m, or fog in the forecast | visibility under 500 m |
 | Darkness | any part of the session before first light or after last light (civil twilight) | – (red with fog or rain) |
 | Tide | outgoing, falling ≥0.1 m/hr | – |
-| Flood | Keilor gauge 0.5–1.0 m, upstream rising ≥0.2 m/hr, or BOM Flood Watch | Keilor gauge ≥1.0 m, upstream rising ≥0.5 m/hr, or a BOM Maribyrnong flood warning |
+| Flood | Keilor gauge 0.6–1.0 m, upstream rising ≥0.2 m/hr, or BOM Flood Watch | Keilor gauge ≥1.0 m, upstream rising ≥0.5 m/hr, or a BOM Maribyrnong flood warning |
 
 **Dangerous combinations turn red** (in `combinations`):
 
