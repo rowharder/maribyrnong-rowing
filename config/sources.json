@@ -166,5 +166,38 @@
       }
     ]
   },
-  "_sessions_comment": "Times are local. 'weekend' overrides the times on Saturday and Sunday."
+  "_sessions_comment": "Times are local. 'weekend' overrides the times on Saturday and Sunday.",
+  "river_forecast": {
+    "_comment": "Our experimental Keilor forecast (scripts/river_model.py, fitted by scripts/fit_river_model.py). 'use_for_lights': false = chart only; true = River/flood light for future sessions uses the forecast.",
+    "use_for_lights": false,
+    "hours_ahead": 72,
+    "rain_gauges": [
+      "230105A",
+      "230100A",
+      "230104A",
+      "587014"
+    ],
+    "forecast_points": [
+      {
+        "name": "Darraweit Guim",
+        "latitude": -37.41,
+        "longitude": 144.9
+      },
+      {
+        "name": "Sunbury",
+        "latitude": -37.58,
+        "longitude": 144.74
+      },
+      {
+        "name": "Bulla",
+        "latitude": -37.65,
+        "longitude": 144.8
+      },
+      {
+        "name": "Keilor",
+        "latitude": -37.73,
+        "longitude": 144.84
+      }
+    ]
+  }
 }

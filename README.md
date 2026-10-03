@@ -56,3 +56,22 @@ No packages to install; it uses only Python 3.11+ built-ins.
 
 Sign up free at goatcounter.com, enable "Allow adding visitor counts on your website" in its settings,
 and put your code in `site/config.js`. The footer will then show total visits and visits this week.
+
+## Keilor river forecast (experimental)
+
+`scripts/river_model.py` forecasts Keilor's height for the next 3 days from just two things: Keilor's
+current flow and catchment rain (Melbourne Water gauges at Keilor, Darraweit Guim, Sunbury and Bulla,
+plus Open-Meteo forecast rain over the catchment). For each look-ahead it learned from 2018–2024 history
+how much the river changes given recent rain, how wet the catchment already is, and rain to come.
+
+Tested on 2025–26 (not used for fitting), a day ahead it was typically within ~3 cm in normal
+conditions and ~24 cm when the river was high. It handles falling rivers well but under-estimates sharp
+flood rises, so it's shown as a chart and only affects lights if `river_forecast.use_for_lights` is
+`true` in `config/sources.json`.
+
+To refit (e.g. after a big event):
+
+```
+python3 scripts/fetch_history.py
+python3 scripts/fit_river_model.py   # several minutes; writes config/river_model.json
+```

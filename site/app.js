@@ -140,7 +140,7 @@
           return `<tr><td>${esc(x.name)}</td><td>${x.level_m.toFixed(2)} m</td><td>${trend}</td></tr>`;
         }).join("")}</tbody></table>${(g.find((x) => x.flow_m3s != null) || null)
           ? `<p class="note">Keilor flow: ${g.find((x) => x.flow_m3s != null).flow_m3s.toFixed(1)} m³/s. Upstream gauges give early warning of rises reaching the course.</p>` : ""}`
-      : "<p>River data unavailable.</p>");
+      : "<p>River data unavailable.</p>") + riverForecastHtml(data.now.river_forecast);
 
     const t = data.now.tides || [];
     const ct = data.now.course_tide;
@@ -150,88 +150,128 @@
       tideHtml += `<dl class="kv">
           <dt>Now</dt><dd><strong>${esc(ct.state || "–")}</strong>${r != null ? ` · ${r < 0 ? "falling" : "rising"} ${Math.abs(r).toFixed(2)} m/hr` : ""}</dd>
           <dt>Level</dt><dd>${ct.level_m.toFixed(2)} m <span class="note-inline">(${esc(ct.gauge)} gauge, ${esc(ct.time.slice(11, 16))})</span></dd></dl>
-        ${tideChart(ct)}`;
+        ${lineChart("tide", "Water level at the course: measured last 24 hours and predicted next 30 hours", [
+          { name: "Measured", cls: "tc-obs", pts: toPts(ct.observed), measured: true },
+          { name: "Predicted", cls: "tc-pred", pts: toPts(ct.predicted) },
+        ])}`;
     }
     tideHtml += t.length
       ? `<dl class="kv">${t.map((x) => `<dt>${esc(x.type)}</dt><dd>${fmtTime(x.time)}</dd>`).join("")}</dl>
          <p class="note">Measured level from Melbourne Water's Maribyrnong gauge, about 700 m from Poyntons. High/low times from BOM ${esc(data.now.tide_station)} predictions, which match the course to within a few minutes.</p>`
       : "<p>Tide predictions unavailable.</p>";
     $("tides").innerHTML = tideHtml;
-    wireTideChart();
+    wireCharts();
   }
 
-  // ---- tide chart: measured (solid) vs predicted (dashed), sessions shaded, hover readout
-  let chartState = null;
-  function tideChart(ct) {
+  // ---- line chart: measured (solid) vs predicted (dashed), sessions shaded, hover readout.
+  // series: [{name, cls, pts:[[ms, m], ...], measured?}], lines: [{v, cls, label}]
+  const charts = {};
+  function lineChart(id, label, series, lines = []) {
     const W = 320, H = 130, P = { l: 30, r: 8, t: 8, b: 18 };
-    const obs = ct.observed.map((p) => [Date.parse(p.time), p.level_m]);
-    const pred = ct.predicted.map((p) => [Date.parse(p.time), p.level_m]);
-    const all = obs.concat(pred);
+    series = series.filter((s) => s.pts.length);
+    const all = series.flatMap((s) => s.pts);
     if (all.length < 2) return "";
     const x0 = Math.min(...all.map((p) => p[0])), x1 = Math.max(...all.map((p) => p[0]));
-    let y0 = Math.min(...all.map((p) => p[1])), y1 = Math.max(...all.map((p) => p[1]));
+    const ys = all.map((p) => p[1]).concat(lines.map((l) => l.v));
+    let y0 = Math.min(...ys), y1 = Math.max(...ys);
     const pad = (y1 - y0) * 0.1 || 0.1; y0 -= pad; y1 += pad;
     const X = (v) => P.l + ((v - x0) / (x1 - x0)) * (W - P.l - P.r);
     const Y = (v) => P.t + (1 - (v - y0) / (y1 - y0)) * (H - P.t - P.b);
     const path = (pts) => pts.map((p, i) => `${i ? "L" : "M"}${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join("");
     const now = Date.parse(data.generated_at);
 
-    // shade session windows that fall inside the chart
     let shade = "";
     for (const c of data.columns) {
       const s0 = Date.parse(c.start), s1 = Date.parse(c.end);
       if (s1 < x0 || s0 > x1) continue;
       shade += `<rect class="tc-sess" x="${X(Math.max(s0, x0))}" y="${P.t}" width="${X(Math.min(s1, x1)) - X(Math.max(s0, x0))}" height="${H - P.t - P.b}"/>`;
     }
-    // y gridlines
     let grid = "";
-    const step = (y1 - y0) > 1 ? 0.5 : 0.25;
+    const span = y1 - y0, step = span > 3 ? 1 : span > 1 ? 0.5 : 0.25;
     for (let v = Math.ceil(y0 / step) * step; v <= y1; v += step) {
       if (Y(v) < P.t + 4) continue;
       grid += `<line class="tc-grid" x1="${P.l}" x2="${W - P.r}" y1="${Y(v)}" y2="${Y(v)}"/><text class="tc-ax" x="${P.l - 4}" y="${Y(v) + 3}" text-anchor="end">${v.toFixed(2)}</text>`;
     }
-    // x ticks every 6 h
+    const hl = lines.map((l) => `<line class="tc-line ${l.cls}" x1="${P.l}" x2="${W - P.r}" y1="${Y(l.v)}" y2="${Y(l.v)}"/>
+      <text class="tc-ax tc-line-label" x="${W - P.r - 2}" y="${Y(l.v) - 3}" text-anchor="end">${esc(l.label)}</text>`).join("");
+    // x ticks: every 6 h for short charts, otherwise one per day at local midnight
     let ticks = "";
-    const fmtH = (ms) => new Date(ms).toLocaleTimeString("en-AU", { hour: "numeric", timeZone: "Australia/Melbourne" });
-    for (let v = Math.ceil(x0 / 216e5) * 216e5; v <= x1; v += 216e5) ticks += `<text class="tc-ax" x="${X(v)}" y="${H - 4}" text-anchor="middle">${fmtH(v)}</text>`;
+    const days = (x1 - x0) > 1.5 * 864e5;
+    const localHour = (ms) => +new Intl.DateTimeFormat("en-AU", { hour: "numeric", hourCycle: "h23", timeZone: "Australia/Melbourne" }).format(ms);
+    const fmtTick = (ms) => new Date(ms).toLocaleString("en-AU", days
+      ? { weekday: "short", timeZone: "Australia/Melbourne" }
+      : { hour: "numeric", timeZone: "Australia/Melbourne" });
+    // Walk hour by hour so ticks land on real local midnights / 6-hourly marks, even across daylight-saving changes.
+    for (let v = Math.ceil(x0 / 36e5) * 36e5; v <= x1; v += 36e5) {
+      const h = localHour(v);
+      if (days && h === 0) {
+        ticks += `<line class="tc-grid" x1="${X(v)}" x2="${X(v)}" y1="${P.t}" y2="${H - P.b}"/><text class="tc-ax" x="${X(v) + 3}" y="${H - 4}">${fmtTick(v)}</text>`;
+      } else if (!days && h % 6 === 0) {
+        ticks += `<text class="tc-ax" x="${X(v)}" y="${H - 4}" text-anchor="middle">${fmtTick(v)}</text>`;
+      }
+    }
 
-    chartState = { obs, pred, X, Y, x0, x1, P, W, H };
-    return `<figure class="tide-chart">
-      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Water level at the course: measured last 24 hours and predicted next 30 hours">
-        ${shade}${grid}${ticks}
-        <path class="tc-pred" d="${path(pred)}"/>
-        <path class="tc-obs" d="${path(obs)}"/>
+    charts[id] = { series, X, Y, x0, x1, P, W };
+    const keys = series.map((s) => `<span class="key ${s.cls}"></span>${esc(s.name)}`).join(" ");
+    return `<figure class="line-chart" data-chart="${id}">
+      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}">
+        ${shade}${grid}${hl}${ticks}
+        ${series.slice().reverse().map((s) => `<path class="${s.cls}" d="${path(s.pts)}"/>`).join("")}
         <line class="tc-now" x1="${X(now)}" x2="${X(now)}" y1="${P.t}" y2="${H - P.b}"/>
         <text class="tc-ax" x="${X(now) + 3}" y="${P.t + 8}">now</text>
         <g class="tc-hover" hidden><line class="tc-cross" y1="${P.t}" y2="${H - P.b}"/><circle r="3.5"/></g>
         <rect class="tc-hit" x="${P.l}" y="0" width="${W - P.l - P.r}" height="${H}"/>
       </svg>
-      <figcaption><span class="key key-obs"></span>Measured <span class="key key-pred"></span>Predicted <span class="key key-sess"></span>Sessions
+      <figcaption>${keys} <span class="key key-sess"></span>Sessions
         <span class="tc-readout" aria-live="polite"></span></figcaption>
     </figure>`;
   }
 
-  function wireTideChart() {
-    const fig = document.querySelector(".tide-chart");
-    if (!fig || !chartState) return;
-    const svg = fig.querySelector("svg"), g = fig.querySelector(".tc-hover"), out = fig.querySelector(".tc-readout");
-    const { obs, pred, X, Y, x0, x1, P, W } = chartState;
-    const move = (ev) => {
-      const r = svg.getBoundingClientRect();
-      const px = ((ev.clientX - r.left) / r.width) * W;
-      const ms = x0 + ((px - P.l) / (W - P.l - P.r)) * (x1 - x0);
-      const nearest = (pts) => pts.reduce((b, p) => (Math.abs(p[0] - ms) < Math.abs(b[0] - ms) ? p : b), pts[0]);
-      const useObs = obs.length && ms <= obs[obs.length - 1][0];
-      const p = nearest(useObs ? obs : pred);
-      g.hidden = false;
-      g.querySelector("line").setAttribute("x1", X(p[0])); g.querySelector("line").setAttribute("x2", X(p[0]));
-      g.querySelector("circle").setAttribute("cx", X(p[0])); g.querySelector("circle").setAttribute("cy", Y(p[1]));
-      out.textContent = `${fmtTime(new Date(p[0]).toISOString())}: ${p[1].toFixed(2)} m ${useObs ? "measured" : "predicted"}`;
-    };
-    const hit = svg.querySelector(".tc-hit");
-    hit.addEventListener("pointermove", move);
-    hit.addEventListener("pointerdown", move);
-    hit.addEventListener("pointerleave", () => { g.hidden = true; out.textContent = ""; });
+  function wireCharts() {
+    document.querySelectorAll(".line-chart").forEach((fig) => {
+      const st = charts[fig.dataset.chart];
+      if (!st) return;
+      const svg = fig.querySelector("svg"), g = fig.querySelector(".tc-hover"), out = fig.querySelector(".tc-readout");
+      const { series, X, Y, x0, x1, P, W } = st;
+      const measured = series.find((s) => s.measured);
+      const move = (ev) => {
+        const r = svg.getBoundingClientRect();
+        const ms = x0 + ((((ev.clientX - r.left) / r.width) * W - P.l) / (W - P.l - P.r)) * (x1 - x0);
+        const nearest = (pts) => pts.reduce((b, p) => (Math.abs(p[0] - ms) < Math.abs(b[0] - ms) ? p : b), pts[0]);
+        const useMeasured = measured && ms <= measured.pts[measured.pts.length - 1][0];
+        const shown = useMeasured ? [measured] : series.filter((s) => !s.measured);
+        const pts = shown.map((s) => nearest(s.pts));
+        if (!pts.length) return;
+        g.hidden = false;
+        g.querySelector("line").setAttribute("x1", X(pts[0][0])); g.querySelector("line").setAttribute("x2", X(pts[0][0]));
+        g.querySelector("circle").setAttribute("cx", X(pts[0][0])); g.querySelector("circle").setAttribute("cy", Y(pts[0][1]));
+        out.textContent = `${fmtTime(new Date(pts[0][0]).toISOString())}: ` +
+          shown.map((s, i) => `${pts[i][1].toFixed(2)} m ${s.name.toLowerCase()}`).join(" · ");
+      };
+      const hit = svg.querySelector(".tc-hit");
+      hit.addEventListener("pointermove", move);
+      hit.addEventListener("pointerdown", move);
+      hit.addEventListener("pointerleave", () => { g.hidden = true; out.textContent = ""; });
+    });
+  }
+
+  const toPts = (rows) => (rows || []).map((p) => [Date.parse(p.time), p.level_m]);
+
+  function riverForecastHtml(fc) {
+    if (!fc) return "";
+    const err = fc.typical_error_m?.["+24h"], errHigh = fc.typical_error_high_river_m?.["+24h"];
+    return `<h3 class="sub-h">Keilor forecast <span class="badge">experimental</span></h3>
+      ${lineChart("river", "Keilor river height: measured and forecast", [
+        { name: "Measured", cls: "tc-obs", pts: toPts(fc.observed), measured: true },
+        { name: "With forecast rain", cls: "tc-pred", pts: toPts(fc.with_rain) },
+        { name: "If no more rain", cls: "tc-dry", pts: toPts(fc.no_rain) },
+      ], [
+        { v: fc.thresholds.red, cls: "tc-red", label: `red ${fc.thresholds.red} m` },
+        { v: fc.thresholds.yellow, cls: "tc-amber", label: `yellow ${fc.thresholds.yellow} m` },
+      ])}
+      <p class="note">Our own forecast from Keilor's current flow and catchment rain, learned from 2018–2024 Melbourne Water records. Catchment rain: ${fc.rain_past_72h_mm} mm in the last 3 days, ${fc.rain_next_72h_mm} mm forecast for the next 3.${
+        err != null && errHigh != null ? ` Tested on 2025–26: a day ahead it was typically within ${Math.round(err * 100)} cm in normal conditions and ${Math.round(errHigh * 100)} cm when the river was high. It handles falling rivers well but <strong>under-estimates sharp flood rises</strong>.` : ""}
+        ${fc.use_for_lights ? "Used for the River / flood light of later sessions." : "Shown for information – the lights still use the current Keilor level."}</p>`;
   }
 
   function renderSources() {

@@ -133,7 +133,7 @@ def fetch_gauge(src, gauge, now: datetime):
         "time": levels[-1][0],
         "level_m": levels[-1][1],
         "rise_m_per_hr": _rise_rate(levels),
-        "history": [{"time": t, "level_m": v} for t, v in levels[-24:]],
+        "history": [{"time": t, "level_m": v} for t, v in levels[-72:]],
     }
     if gauge["role"] == "course":
         # 6-minute readings: this gauge is tidal, so show the actual water level at the course.
@@ -152,6 +152,7 @@ def fetch_gauge(src, gauge, now: datetime):
             flows = sorted((r["dateTime"], r["meanRiverFlow_m3"]) for r in flows if r["meanRiverFlow_m3"] is not None)
             if flows:
                 out["flow_m3s"] = flows[-1][1]
+                out["flow_history"] = [v for _, v in flows[-6:]]
         except Exception:
             pass
     return out
@@ -162,3 +163,33 @@ def _rise_rate(levels, hours=3):
     if len(levels) <= hours:
         return None
     return round((levels[-1][1] - levels[-1 - hours][1]) / hours, 3)
+
+
+def fetch_catchment_rain(src, now: datetime, days=30):
+    """Hourly observed rain at each catchment gauge for the last `days`. Returns {gauge_id: {"YYYY-MM-DD HH": mm}}."""
+    out = {}
+    params = {"fromDate": (now - timedelta(days=days)).strftime("%Y-%m-%d"), "toDate": now.strftime("%Y-%m-%d")}
+    for gid in src["river_forecast"]["rain_gauges"]:
+        raw = json.loads(_get(f"{src['melbourne_water_api']}/{gid}/rain/hourly/range", params))
+        key = next(k for k in raw if k.endswith("Data"))
+        out[gid] = {r["dateTime"][:13]: r.get("currentRainfallLevel") for r in raw[key]}
+    return out
+
+
+def fetch_catchment_rain_forecast(src):
+    """Hourly forecast rain averaged over the catchment points. Returns {"YYYY-MM-DDTHH:00": mm}."""
+    pts = src["river_forecast"]["forecast_points"]
+    raw = json.loads(_get(src["open_meteo_url"], {
+        "latitude": ",".join(str(p["latitude"]) for p in pts),
+        "longitude": ",".join(str(p["longitude"]) for p in pts),
+        "hourly": "precipitation",
+        "timezone": src["location"]["timezone"],
+        "forecast_days": 4,
+    }))
+    raw = raw if isinstance(raw, list) else [raw]
+    times = raw[0]["hourly"]["time"]
+    out = {}
+    for i, t in enumerate(times):
+        vals = [r["hourly"]["precipitation"][i] for r in raw if r["hourly"]["precipitation"][i] is not None]
+        out[t] = sum(vals) / len(vals) if vals else 0.0
+    return out

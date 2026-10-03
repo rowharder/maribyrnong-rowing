@@ -250,8 +250,9 @@ def classify_warnings(warnings):
     return out
 
 
-def eval_flood(gauges, warnings, th):
-    """Current river state - same for every session (it is based on live readings)."""
+def eval_flood(gauges, warnings, th, forecast_level=None, forecast_note=""):
+    """River state. Uses the live Keilor reading, or `forecast_level` (predicted Keilor height
+    during a later session) when given."""
     ft = th["flood"]
     lv, reasons = GREEN, []
     keilor = next((g for g in gauges if g["role"] == "keilor"), None)
@@ -259,11 +260,15 @@ def eval_flood(gauges, warnings, th):
     if keilor:
         normal = ft["keilor_normal_m"]
         band = ft["keilor_above_normal_m"]
-        above = round(keilor["level_m"] - normal, 2)  # judge on the same rounded value we display
+        height = keilor["level_m"] if forecast_level is None else forecast_level
+        above = round(height - normal, 2)  # judge on the same rounded value we display
         lv = _band(above, band["amber"], band["red"])
-        reasons.append(f"Keilor gauge {keilor['level_m']:.2f} m = {above:.2f} m above normal ({normal} m). "
+        what = "Keilor gauge" if forecast_level is None else "Forecast Keilor"
+        reasons.append(f"{what} {height:.2f} m = {above:.2f} m above normal ({normal} m). "
                        f"Green under {normal + band['amber']:.2f} m, yellow under {normal + band['red']:.2f} m, "
                        f"red from {normal + band['red']:.2f} m")
+        if forecast_level is not None:
+            reasons.append(f"{forecast_note} (now {keilor['level_m']:.2f} m) - experimental forecast")
     for g in gauges:
         rise = g.get("rise_m_per_hr")
         if rise is None or g["role"] == "course":
@@ -281,7 +286,7 @@ def eval_flood(gauges, warnings, th):
     if not keilor and not warnings["flood"]:
         lv = worst(lv, UNKNOWN)
         reasons.append("Keilor gauge unavailable - check river manually")
-    value = f"Keilor {keilor['level_m']:.2f} m" if keilor else "?"
+    value = (f"Keilor {keilor['level_m']:.2f} m" if forecast_level is None else f"~{forecast_level:.2f} m") if keilor else "?"
     return factor(lv, value, *reasons)
 
 
