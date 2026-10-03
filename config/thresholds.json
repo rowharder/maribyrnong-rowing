@@ -1,0 +1,99 @@
+{
+  "_comment": "Safety thresholds. Edit these numbers to tune the traffic lights. Values at or above 'red' are red; at or above 'amber' are amber.",
+  "wind_kn": {
+    "amber": 10,
+    "red": 15
+  },
+  "gust_kn": {
+    "amber": 18,
+    "red": 25
+  },
+  "heat_c": {
+    "amber": 30,
+    "red": 35
+  },
+  "cold_c": {
+    "amber": 5
+  },
+  "rain_mm_per_hr": {
+    "_comment": "Rain alone is amber when heavy. Light rain still counts in combinations once it reaches 'combo_min'.",
+    "amber": 2.0,
+    "combo_min": 0.3
+  },
+  "storm": {
+    "cape_amber": 800,
+    "cape_rain_mm": 0.2,
+    "text_keywords_amber": [
+      "thunderstorm",
+      "storm",
+      "damaging winds",
+      "hail"
+    ]
+  },
+  "visibility_m": {
+    "amber": 2000,
+    "red": 1000
+  },
+  "fog_keywords": [
+    "fog"
+  ],
+  "darkness": {
+    "_comment": "Sun angle in degrees. Below -6 (civil twilight) counts as dark. Dark alone is OK (alone_level) - it only matters in combinations.",
+    "dark_below_deg": -6,
+    "alone_level": "green"
+  },
+  "tide_ebb_m_per_hr": {
+    "_comment": "An outgoing tide alone is amber. It turns red only in combination with high river flow (see combinations).",
+    "amber": 0.1
+  },
+  "flood": {
+    "keilor_level_m": {
+      "amber": 1.5,
+      "red": 3.5
+    },
+    "keilor_flow_m3s": {
+      "amber": 20,
+      "red": 60
+    },
+    "upstream_rise_m_per_hr": {
+      "amber": 0.2,
+      "red": 0.5
+    }
+  },
+  "stale_after_hours": 3,
+  "combinations": [
+    {
+      "label": "Dark + fog",
+      "factors": [
+        "darkness",
+        "visibility"
+      ],
+      "why": "can't see or be seen"
+    },
+    {
+      "label": "Dark + rain",
+      "factors": [
+        "darkness",
+        "rain"
+      ],
+      "why": "poor visibility in the dark"
+    },
+    {
+      "label": "Rain + wind",
+      "factors": [
+        "rain",
+        "wind|gust"
+      ],
+      "why": "rough, wet conditions"
+    },
+    {
+      "label": "Outgoing tide + high river",
+      "factors": [
+        "tide",
+        "flood"
+      ],
+      "why": "strong current running out"
+    }
+  ],
+  "_combinations_comment": "When every factor in a combination is active (amber, or dark for darkness), those lights become red. Add your own."
+}

@@ -1,0 +1,33 @@
+{
+  "_comment": "Where the dashboard gets its data. Gauge IDs are Melbourne Water site IDs.",
+  "location": {
+    "name": "Maribyrnong River, Maribyrnong",
+    "latitude": -37.775,
+    "longitude": 144.892,
+    "timezone": "Australia/Melbourne"
+  },
+  "sessions": [
+    { "id": "am", "label": "Morning", "start": "05:30", "end": "07:00" },
+    { "id": "pm", "label": "Evening", "start": "18:00", "end": "20:00" }
+  ],
+  "days_to_show": 4,
+  "open_meteo_url": "https://api.open-meteo.com/v1/forecast",
+  "bom_forecast_ftp": "ftp://ftp.bom.gov.au/anon/gen/fwo/IDV10450.xml",
+  "bom_forecast_area": "Melbourne",
+  "bom_obs_url": "https://www.bom.gov.au/fwo/IDV60901/IDV60901.95866.json",
+  "bom_obs_name": "Essendon Airport",
+  "bom_warnings_url": "https://www.bom.gov.au/fwo/IDZ00059.warnings_vic.xml",
+  "bom_tides_url": "https://www.bom.gov.au/australia/tides/print.php",
+  "bom_tide_station": { "aac": "VIC_TP003", "name": "Melbourne (Williamstown)" },
+  "tide_lag_minutes": 0,
+  "_tide_lag_comment": "Measured 3 Oct 2026: the Maribyrnong gauge (~700 m from Poyntons) runs within ~5 min of Williamstown, same range.",
+  "melbourne_water_api": "https://api.melbournewater.com.au/rainfall-river-level",
+  "gauges": [
+    { "id": "230106A", "name": "Maribyrnong (near Poyntons)", "role": "course" },
+    { "id": "230105A", "name": "Keilor", "role": "keilor" },
+    { "id": "230237A", "name": "Keilor North", "role": "upstream" },
+    { "id": "230102A", "name": "Bulla North (Deep Ck)", "role": "upstream" },
+    { "id": "230104A", "name": "Sunbury (Jacksons Ck)", "role": "upstream" },
+    { "id": "230100A", "name": "Darraweit Guim (Deep Ck)", "role": "upstream" }
+  ]
+}

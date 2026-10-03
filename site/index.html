@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Maribyrnong Rowing Conditions</title>
+<meta name="description" content="Traffic-light safety guide for rowing sessions on the Maribyrnong River.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="top">
+  <div>
+    <h1>Maribyrnong Rowing Conditions</h1>
+    <p class="sub" id="location">Maribyrnong River</p>
+  </div>
+  <p class="updated" id="updated">Loading…</p>
+</header>
+
+<main>
+  <div id="stale" class="banner banner-stale" hidden></div>
+  <div id="warnings" class="banner banner-warn" hidden></div>
+
+  <section aria-labelledby="grid-h">
+    <h2 id="grid-h" class="visually-hidden">Session risk by factor</h2>
+    <div class="grid-wrap">
+      <table class="grid" id="grid"></table>
+    </div>
+    <ul class="legend" aria-label="Legend">
+      <li><span class="light light-sm green" aria-hidden="true">✓</span> Go</li>
+      <li><span class="light light-sm amber" aria-hidden="true">!</span> Caution</li>
+      <li><span class="light light-sm red" aria-hidden="true">✕</span> No go</li>
+      <li><span class="light light-sm unknown" aria-hidden="true">?</span> No data – check manually</li>
+    </ul>
+    <p class="hint">Tap a column for the details behind each light.</p>
+  </section>
+
+  <section id="detail" class="card" hidden aria-live="polite"></section>
+
+  <section aria-labelledby="now-h">
+    <h2 id="now-h">Right now</h2>
+    <div class="now-grid">
+      <div class="card" id="obs"></div>
+      <div class="card" id="river"></div>
+      <div class="card" id="tides"></div>
+    </div>
+  </section>
+
+  <section class="card small">
+    <h2>About</h2>
+    <p><strong>This is a guide only.</strong> The coach or captain on the day makes the call. Always look at the water before going out.</p>
+    <p>Updated every 30 minutes from the Bureau of Meteorology (forecasts, observations, warnings, tides), Melbourne Water river gauges and Open-Meteo hourly forecasts. Dark, an outgoing tide or light rain alone are not stop signs, but some <em>combinations</em> are: dark + fog, dark + rain, rain + wind, and an outgoing tide on a high river all turn red.</p>
+    <details>
+      <summary>Data source status</summary>
+      <ul id="sources"></ul>
+    </details>
+  </section>
+</main>
+
+<footer>
+  <span id="usage" hidden></span>
+</footer>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
