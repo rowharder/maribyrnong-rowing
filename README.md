@@ -66,8 +66,9 @@ how much the river changes given recent rain, how wet the catchment already is, 
 
 Tested on 2025–26 (not used for fitting), a day ahead it was typically within ~3 cm in normal
 conditions and ~24 cm when the river was high. It handles falling rivers well but under-estimates sharp
-flood rises, so it's shown as a chart and only affects lights if `river_forecast.use_for_lights` is
-`true` in `config/sources.json`.
+flood rises. With `river_forecast.use_for_lights: true` (in `config/sources.json`) it sets the River / flood
+light for sessions more than 3 hours away (sessions past the 3-day forecast use its last value); nearer
+sessions use the live Keilor reading. BOM warnings and Flood Watches still apply on top.
 
 To refit (e.g. after a big event):
 

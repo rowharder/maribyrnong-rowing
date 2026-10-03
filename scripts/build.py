@@ -137,12 +137,18 @@ def build_river_forecast(src, th, gauges, now, status):
 
 
 def forecast_level_for(river_fc, start, end, now):
-    """Highest forecast Keilor level during a session, if the session is >3 h away and within the forecast."""
+    """(level, note) for a session more than 3 h away: highest forecast Keilor level during it, or the
+    forecast's last value if the session is past the end of the forecast. None = use the live reading."""
     if not river_fc or not river_fc["use_for_lights"] or start - now < timedelta(hours=3):
         return None
-    vals = [r["level_m"] for r in river_fc["with_rain"]
+    rows = river_fc["with_rain"]
+    vals = [r["level_m"] for r in rows
             if start - timedelta(minutes=30) <= datetime.fromisoformat(r["time"]) <= end + timedelta(minutes=30)]
-    return max(vals) if vals else None
+    if vals:
+        return max(vals), "Highest forecast level during this session"
+    if rows and start > datetime.fromisoformat(rows[-1]["time"]):
+        return rows[-1]["level_m"], f"Beyond the 3-day forecast - using its last value ({rows[-1]['time'][:10]})"
+    return None
 
 
 def site_version():
@@ -190,9 +196,9 @@ def main():
             start, end = at(day, s["start"], tz), at(day, s["end"], tz)
             if end < now:
                 continue
-            fc_level = forecast_level_for(river_fc, start, end, now)
-            session_flood = flood if fc_level is None else rules.eval_flood(
-                gauges, warnings, th, fc_level, f"Highest forecast level during this session ~{fc_level:.2f} m")
+            fc = forecast_level_for(river_fc, start, end, now)
+            session_flood = flood if fc is None else rules.eval_flood(
+                gauges, warnings, th, fc[0], f"{fc[1]} ~{fc[0]:.2f} m")
             result = rules.evaluate_session(
                 start=start, end=end, is_morning=s["id"] == "am",
                 hours=session_hours(forecast, start, end),

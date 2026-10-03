@@ -65,5 +65,38 @@ class FittedModel(unittest.TestCase):
         self.assertLess(out[-1], 40.0)
 
 
+class SessionLevel(unittest.TestCase):
+    def setUp(self):
+        import build
+        from datetime import datetime, timedelta
+        from zoneinfo import ZoneInfo
+        self.build, self.td = build, timedelta
+        self.now = datetime(2026, 10, 4, 8, 0, tzinfo=ZoneInfo("Australia/Melbourne"))
+        rows = [{"time": (self.now + timedelta(hours=h)).isoformat(timespec="minutes"), "level_m": 1.2 - h * 0.01}
+                for h in range(1, 73)]
+        self.fc = {"use_for_lights": True, "with_rain": rows}
+
+    def test_session_inside_forecast_uses_highest_level(self):
+        start = self.now + self.td(hours=10)
+        level, note = self.build.forecast_level_for(self.fc, start, start + self.td(hours=2), self.now)
+        self.assertAlmostEqual(level, 1.2 - 0.095 * 1, delta=0.02)
+        self.assertIn("Highest", note)
+
+    def test_session_soon_uses_live_reading(self):
+        start = self.now + self.td(hours=2)
+        self.assertIsNone(self.build.forecast_level_for(self.fc, start, start + self.td(hours=2), self.now))
+
+    def test_session_past_forecast_uses_last_value(self):
+        start = self.now + self.td(hours=80)
+        level, note = self.build.forecast_level_for(self.fc, start, start + self.td(hours=2), self.now)
+        self.assertAlmostEqual(level, 1.2 - 0.72, places=3)
+        self.assertIn("Beyond", note)
+
+    def test_switched_off_uses_live_reading(self):
+        self.fc["use_for_lights"] = False
+        start = self.now + self.td(hours=10)
+        self.assertIsNone(self.build.forecast_level_for(self.fc, start, start + self.td(hours=2), self.now))
+
+
 if __name__ == "__main__":
     unittest.main()

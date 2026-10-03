@@ -169,7 +169,7 @@
   "_sessions_comment": "Times are local. 'weekend' overrides the times on Saturday and Sunday.",
   "river_forecast": {
     "_comment": "Our experimental Keilor forecast (scripts/river_model.py, fitted by scripts/fit_river_model.py). 'use_for_lights': false = chart only; true = River/flood light for future sessions uses the forecast.",
-    "use_for_lights": false,
+    "use_for_lights": true,
     "hours_ahead": 72,
     "rain_gauges": [
       "230105A",
