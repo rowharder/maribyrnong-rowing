@@ -9,7 +9,7 @@
     "red": 35
   },
   "cold_c": {
-    "amber": 5
+    "amber": 10
   },
   "rain_mm_per_hr": {
     "_comment": "Rain alone is amber when heavy. Light rain still counts in combinations once it reaches 'combo_min'.",

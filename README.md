@@ -25,7 +25,7 @@ whole page is more than 3 hours old, every light turns grey.
 | Factor | Amber | Red |
 |---|---|---|
 | Wind | ≥10 kn | ≥15 kn, or a BOM Severe Weather Warning (Central district) |
-| Temperature | ≥30 °C, or below 5 °C | ≥35 °C |
+| Temperature | ≥30 °C, or below 10 °C | ≥35 °C |
 | Rain | ≥2 mm/hr | – |
 | Lightning | BOM day forecast mentions thunder/lightning/hail, or unstable air with rain | thunderstorm forecast during the session, or a BOM Severe Thunderstorm Warning (Central district) |
 | Fog / visibility | <2 km or fog forecast | <1 km |

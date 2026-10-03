@@ -60,7 +60,8 @@ class Single(unittest.TestCase):
     def test_heat_and_cold(self):
         self.assertEqual(rules.eval_temp([hour(temp=36)], TH)["level"], "red")
         self.assertEqual(rules.eval_temp([hour(temp=31)], TH)["level"], "amber")
-        self.assertEqual(rules.eval_temp([hour(temp=3)], TH)["level"], "amber")
+        self.assertEqual(rules.eval_temp([hour(temp=9)], TH)["level"], "amber")
+        self.assertEqual(rules.eval_temp([hour(temp=10)], TH)["level"], "green")
 
     def test_dark_alone_is_amber(self):
         r = session([hour()] * 3, morning=True)

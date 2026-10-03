@@ -65,7 +65,7 @@ def eval_temp(hours, th):
     vals = [h["temp"] for h in hours if h and h.get("temp") is not None]
     if not vals:
         return factor(UNKNOWN, "?", "No temperature forecast available")
-    hi, lo = max(vals), min(vals)
+    hi, lo = round(max(vals)), round(min(vals))  # judge on the same whole degrees we display
     lv = _band(hi, th["heat_c"]["amber"], th["heat_c"]["red"])
     reasons = []
     if lv != GREEN:
@@ -74,7 +74,7 @@ def eval_temp(hours, th):
         lv = worst(lv, AMBER)
         reasons.append(f"Cold: down to {lo:.0f}°C (amber below {th['cold_c']['amber']}) - dress for immersion")
     if not reasons:
-        reasons.append(f"{lo:.0f}–{hi:.0f}°C")
+        reasons.append(f"{lo}°C" if lo == hi else f"{lo}–{hi}°C")
     value = f"{hi:.0f}°C" if hi >= th["heat_c"]["amber"] else f"{lo:.0f}°C"
     return factor(lv, value, *reasons)
 
