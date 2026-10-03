@@ -26,6 +26,18 @@ THUNDER_CODES = {95, 96, 99}
 FOG_CODES = {45, 48}
 
 
+def clock(t):
+    """12-hour time as shown on the page: 6:50am, 7pm."""
+    h12 = t.hour % 12 or 12
+    return f"{h12}{f':{t.minute:02d}' if t.minute else ''}{'am' if t.hour < 12 else 'pm'}"
+
+
+def clock_range(a, b):
+    """5:30–7am, 6–8pm, 11:30am–1pm."""
+    ca, cb = clock(a), clock(b)
+    return f"{ca[:-2]}–{cb}" if ca[-2:] == cb[-2:] else f"{ca}–{cb}"
+
+
 def worst(*levels):
     return max(levels, key=lambda lv: _RANK[lv]) if levels else UNKNOWN
 
@@ -200,15 +212,15 @@ def eval_darkness(start, end, lat, lon, th, is_morning):
         return f
     short, detail = [], []
     if start < sunrise:
-        short.append(f"Lights to {min(sunrise, end):%H:%M}")
-        detail.append(f"Lights needed {start:%H:%M}–{min(sunrise, end):%H:%M} (sunrise {sunrise:%H:%M})")
+        short.append(f"Lights to {clock(min(sunrise, end))}")
+        detail.append(f"Lights needed {clock_range(start, min(sunrise, end))} (sunrise {clock(sunrise)})")
     if end > sunset:
-        short.append(f"Lights from {max(sunset, start):%H:%M}")
-        detail.append(f"Lights needed {max(sunset, start):%H:%M}–{end:%H:%M} (sunset {sunset:%H:%M})")
+        short.append(f"Lights from {clock(max(sunset, start))}")
+        detail.append(f"Lights needed {clock_range(max(sunset, start), end)} (sunset {clock(sunset)})")
     f = factor(GREEN, "Dark" if short else "Light", *detail)
     f["active"] = bool(short)
     f["lights"] = {"needed": bool(short), "short": " · ".join(short), "detail": "; ".join(detail)} if short else \
-        {"needed": False, "short": "", "detail": f"No lights needed (sunrise {sunrise:%H:%M}, sunset {sunset:%H:%M})"}
+        {"needed": False, "short": "", "detail": f"No lights needed (sunrise {clock(sunrise)}, sunset {clock(sunset)})"}
     return f
 
 

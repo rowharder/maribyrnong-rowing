@@ -77,7 +77,7 @@ class Single(unittest.TestCase):
         self.assertNotIn("darkness", r["factors"])
         self.assertEqual(r["overall"], "green", r)
         self.assertTrue(r["lights"]["needed"])
-        self.assertRegex(r["lights"]["short"], r"^Lights to 06:\d\d$")
+        self.assertRegex(r["lights"]["short"], r"^Lights to 6:\d\dam$")
 
     def test_daylight_session_needs_no_lights(self):
         r = session([hour()] * 3, morning="day")
@@ -125,8 +125,8 @@ class Single(unittest.TestCase):
         end = datetime(2026, 10, 5, 20, 0, tzinfo=TZ)
         f = rules.eval_darkness(start, end, LAT, LON, TH, is_morning=False)
         self.assertTrue(f["active"])
-        self.assertRegex(f["lights"]["short"], r"^Lights from 19:2\d$")
-        self.assertIn("sunset 19:2", f["lights"]["detail"])
+        self.assertRegex(f["lights"]["short"], r"^Lights from 7:2\dpm$")
+        self.assertIn("sunset 7:2", f["lights"]["detail"])
 
     def test_weekend_morning_after_sunrise_needs_no_lights(self):
         # Sat 9 Jan 2027: sunrise ~06:05, weekend session 06:30-08:00.

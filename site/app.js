@@ -7,6 +7,14 @@
   const REFRESH_MS = 10 * 60 * 1000;
 
   const $ = (id) => document.getElementById(id);
+  // 12-hour Melbourne time, compact: "6:50am", "7pm".
+  const clockParts = (ms) => {
+    const p = Object.fromEntries(new Intl.DateTimeFormat("en-AU", { hour: "numeric", minute: "2-digit", hourCycle: "h12",
+      weekday: "short", timeZone: "Australia/Melbourne" }).formatToParts(ms).map((x) => [x.type, x.value]));
+    return { wd: p.weekday, h: +p.hour, m: p.minute, ap: (p.dayPeriod || "").toLowerCase().replace(/\./g, "") };
+  };
+  const clock = (ms) => { const c = clockParts(ms); return `${c.h}${c.m !== "00" ? ":" + c.m : ""}${c.ap}`; };
+  const clockHM = (hh, mm) => `${+hh % 12 || 12}${mm !== "00" ? ":" + mm : ""}${+hh < 12 ? "am" : "pm"}`;
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const light = (level, size = "") =>
     `<span class="light ${size} ${level}" role="img" aria-label="${LABEL[level]}">${ICON[level]}</span>`;
@@ -35,9 +43,7 @@
     const ageHrs = (Date.now() - generated) / 3.6e6;
     const stale = ageHrs > data.stale_after_hours;
     $("location").textContent = data.location;
-    $("updated").textContent = `Updated ${generated.toLocaleString("en-AU", {
-      weekday: "short", hour: "numeric", minute: "2-digit", timeZone: "Australia/Melbourne",
-    })}`;
+    $("updated").textContent = `Updated ${clockParts(generated).wd} ${clock(generated)}`;
     $("stale").hidden = !stale;
     if (stale) $("stale").textContent =
       `Data is ${Math.floor(ageHrs)} hours old – lights greyed out. Check conditions yourself.`;
@@ -127,7 +133,8 @@
   }
 
   function fmtTime(iso) {
-    return new Date(iso).toLocaleString("en-AU", { weekday: "short", hour: "numeric", minute: "2-digit", timeZone: "Australia/Melbourne" });
+    const ms = Date.parse(iso);
+    return `${clockParts(ms).wd} ${clock(ms)}`;
   }
 
   function renderNow() {
@@ -139,7 +146,7 @@
           <dt>Gusts</dt><dd>${o.gust_kn ?? "–"} kn</dd>
           <dt>Rain since 9am</dt><dd>${o.rain_since_9am ?? "–"} mm</dd>
           <dt>Visibility</dt><dd>${o.visibility_km ?? "–"} km</dd></dl>
-         <p class="note">Observed ${esc(o.time.slice(8, 10))}:${esc(o.time.slice(10, 12))}</p>`
+         <p class="note">Observed ${clockHM(o.time.slice(8, 10), o.time.slice(10, 12))}</p>`
       : `<h3>Weather</h3><p>No data.</p>`;
 
     const g = data.now.gauges || [];
@@ -158,7 +165,7 @@
       const r = ct.rate_m_per_hr;
       tideHtml += `<dl class="kv">
           <dt>Now</dt><dd><strong>${esc(ct.state || "–")}</strong>${r != null ? ` · ${r < 0 ? "falling" : "rising"} ${Math.abs(r).toFixed(2)} m/hr` : ""}</dd>
-          <dt>Level</dt><dd>${ct.level_m.toFixed(2)} m <span class="note-inline">at ${esc(ct.time.slice(11, 16))}</span></dd></dl>
+          <dt>Level</dt><dd>${ct.level_m.toFixed(2)} m <span class="note-inline">at ${clockHM(ct.time.slice(11, 13), ct.time.slice(14, 16))}</span></dd></dl>
         ${lineChart("tide", "Water level at the course: measured last 24 hours and predicted next 30 hours", [
           { name: "Measured", cls: "tc-obs", pts: toPts(ct.observed), measured: true },
           { name: "Forecast", cls: "tc-pred", pts: toPts(ct.predicted) },
@@ -207,9 +214,7 @@
     let ticks = "";
     const days = (x1 - x0) > 1.5 * 864e5;
     const localHour = (ms) => +new Intl.DateTimeFormat("en-AU", { hour: "numeric", hourCycle: "h23", timeZone: "Australia/Melbourne" }).format(ms);
-    const fmtTick = (ms) => new Date(ms).toLocaleString("en-AU", days
-      ? { weekday: "short", timeZone: "Australia/Melbourne" }
-      : { hour: "numeric", timeZone: "Australia/Melbourne" });
+    const fmtTick = (ms) => (days ? clockParts(ms).wd : clock(ms));
     // Walk hour by hour so ticks land on real local midnights / 6-hourly marks, even across daylight-saving changes.
     for (let v = Math.ceil(x0 / 36e5) * 36e5; v <= x1; v += 36e5) {
       const h = localHour(v);

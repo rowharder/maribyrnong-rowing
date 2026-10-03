@@ -211,7 +211,7 @@ def main():
                 "date_label": f"{day:%a} {day.day} {day:%b}",
                 "session": s["id"],
                 "session_label": s["label"],
-                "time_label": f"{s['start']}–{s['end']}",
+                "time_label": rules.clock_range(start, end),
                 "start": start.isoformat(timespec="minutes"),
                 "end": end.isoformat(timespec="minutes"),
                 "bom_text": day_text.get(day.isoformat()),
