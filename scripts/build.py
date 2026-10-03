@@ -117,6 +117,8 @@ def main():
     for d in range(src["days_to_show"]):
         day = today + timedelta(days=d)
         for s in src["sessions"]:
+            if day.weekday() >= 5 and "weekend" in s:
+                s = s | s["weekend"]
             start, end = at(day, s["start"], tz), at(day, s["end"], tz)
             if end < now:
                 continue

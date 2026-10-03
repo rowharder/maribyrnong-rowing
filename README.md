@@ -1,7 +1,7 @@
 # Maribyrnong Rowing Conditions
 
-A public web page with traffic lights for each rowing session (morning 05:30–07:00 and evening
-18:00–20:00) over the next few days on the Maribyrnong River. Each column is a session; each row is a
+A public web page with traffic lights for each rowing session (weekday mornings 05:30–07:00, weekend
+mornings 06:30–08:00, evenings 18:00–20:00) over the next few days on the Maribyrnong River. Each column is a session; each row is a
 risk factor; the top row is the overall call.
 
 **Guide only. The coach or captain on the day makes the call.**

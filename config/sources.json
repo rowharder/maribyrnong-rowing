@@ -11,7 +11,11 @@
       "id": "am",
       "label": "Morning",
       "start": "05:30",
-      "end": "07:00"
+      "end": "07:00",
+      "weekend": {
+        "start": "06:30",
+        "end": "08:00"
+      }
     },
     {
       "id": "pm",
@@ -161,5 +165,6 @@
         "url": "https://www.melbournewater.com.au/water-and-environment/water-management/rainfall-and-river-levels#/reader/230100A"
       }
     ]
-  }
+  },
+  "_sessions_comment": "Times are local. 'weekend' overrides the times on Saturday and Sunday."
 }
