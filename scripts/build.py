@@ -198,7 +198,7 @@ def main():
                 continue
             fc = forecast_level_for(river_fc, start, end, now)
             session_flood = rules.eval_flood(gauges, warnings, th, on=day) if fc is None else rules.eval_flood(
-                gauges, warnings, th, fc[0], f"{fc[1]} ~{fc[0]:.2f} m", on=day)
+                gauges, warnings, th, fc[0], f"{fc[1]}: {fc[0]:.2f} m", on=day)
             result = rules.evaluate_session(
                 start=start, end=end, is_morning=s["id"] == "am",
                 hours=session_hours(forecast, start, end),

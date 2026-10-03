@@ -300,7 +300,7 @@ def eval_flood(gauges, warnings, th, forecast_level=None, forecast_note="", on=N
     if not keilor and not warnings["flood"]:
         lv = worst(lv, UNKNOWN)
         reasons.append("Keilor gauge unavailable - check river manually")
-    value = (f"Keilor {keilor['level_m']:.2f} m" if forecast_level is None else f"~{forecast_level:.2f} m") if keilor else "?"
+    value = (f"Keilor {keilor['level_m']:.2f} m" if forecast_level is None else f"{forecast_level:.2f} m") if keilor else "?"
     return factor(lv, value, *reasons)
 
 
