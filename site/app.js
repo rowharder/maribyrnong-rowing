@@ -75,7 +75,10 @@
     html += "</tr>";
 
     data.factors.forEach((f) => {
-      html += `<tr><th class="rowhead" scope="row">${esc(f.label)}</th>`;
+      const link = f.links?.[0];
+      html += `<tr><th class="rowhead" scope="row">${link
+        ? `<a href="${esc(link.url)}" target="_blank" rel="noopener" title="Check: ${esc(link.label)}">${esc(f.label)}<span class="ext" aria-hidden="true">↗</span></a>`
+        : esc(f.label)}</th>`;
       cols.forEach((c, i) => {
         const x = c.factors[f.id];
         const l = lv(x.level);
@@ -104,7 +107,8 @@
     data.factors.forEach((f) => {
       const x = c.factors[f.id];
       html += `<li>${light(stale ? "unknown" : x.level, "light-sm")}<span class="name">${esc(f.label)}</span>
-        <span class="why">${x.reasons.map((r) => `<div>${esc(r)}</div>`).join("")}</span></li>`;
+        <span class="why">${x.reasons.map((r) => `<div>${esc(r)}</div>`).join("")}${(f.links || []).length
+          ? `<div class="check">Check: ${f.links.map((l) => `<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)}</a>`).join(" · ")}</div>` : ""}</span></li>`;
     });
     $("detail").innerHTML = html + "</ul>";
     $("detail").hidden = false;

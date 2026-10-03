@@ -146,7 +146,7 @@ def main():
     out = {
         "generated_at": now.isoformat(timespec="minutes"),
         "location": loc["name"],
-        "factors": [{"id": k, "label": v} for k, v in rules.FACTORS],
+        "factors": [{"id": k, "label": v, "links": src.get("verify_links", {}).get(k, [])} for k, v in rules.FACTORS],
         "columns": columns,
         "now": {
             "observations": obs,

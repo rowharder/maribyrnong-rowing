@@ -7,8 +7,18 @@
     "timezone": "Australia/Melbourne"
   },
   "sessions": [
-    { "id": "am", "label": "Morning", "start": "05:30", "end": "07:00" },
-    { "id": "pm", "label": "Evening", "start": "18:00", "end": "20:00" }
+    {
+      "id": "am",
+      "label": "Morning",
+      "start": "05:30",
+      "end": "07:00"
+    },
+    {
+      "id": "pm",
+      "label": "Evening",
+      "start": "18:00",
+      "end": "20:00"
+    }
   ],
   "days_to_show": 4,
   "open_meteo_url": "https://api.open-meteo.com/v1/forecast",
@@ -18,16 +28,148 @@
   "bom_obs_name": "Essendon Airport",
   "bom_warnings_url": "https://www.bom.gov.au/fwo/IDZ00059.warnings_vic.xml",
   "bom_tides_url": "https://www.bom.gov.au/australia/tides/print.php",
-  "bom_tide_station": { "aac": "VIC_TP003", "name": "Melbourne (Williamstown)" },
+  "bom_tide_station": {
+    "aac": "VIC_TP003",
+    "name": "Melbourne (Williamstown)"
+  },
   "tide_lag_minutes": 0,
   "_tide_lag_comment": "Measured 3 Oct 2026: the Maribyrnong gauge (~700 m from Poyntons) runs within ~5 min of Williamstown, same range.",
   "melbourne_water_api": "https://api.melbournewater.com.au/rainfall-river-level",
   "gauges": [
-    { "id": "230106A", "name": "Maribyrnong (near Poyntons)", "role": "course" },
-    { "id": "230105A", "name": "Keilor", "role": "keilor" },
-    { "id": "230237A", "name": "Keilor North", "role": "upstream" },
-    { "id": "230102A", "name": "Bulla North (Deep Ck)", "role": "upstream" },
-    { "id": "230104A", "name": "Sunbury (Jacksons Ck)", "role": "upstream" },
-    { "id": "230100A", "name": "Darraweit Guim (Deep Ck)", "role": "upstream" }
-  ]
+    {
+      "id": "230106A",
+      "name": "Maribyrnong (near Poyntons)",
+      "role": "course"
+    },
+    {
+      "id": "230105A",
+      "name": "Keilor",
+      "role": "keilor"
+    },
+    {
+      "id": "230237A",
+      "name": "Keilor North",
+      "role": "upstream"
+    },
+    {
+      "id": "230102A",
+      "name": "Bulla North (Deep Ck)",
+      "role": "upstream"
+    },
+    {
+      "id": "230104A",
+      "name": "Sunbury (Jacksons Ck)",
+      "role": "upstream"
+    },
+    {
+      "id": "230100A",
+      "name": "Darraweit Guim (Deep Ck)",
+      "role": "upstream"
+    }
+  ],
+  "verify_links": {
+    "_comment": "Links shown on each row so people can check the data themselves. First link is used on the row label.",
+    "wind": [
+      {
+        "label": "WillyWeather wind – Maribyrnong",
+        "url": "https://wind.willyweather.com.au/vic/melbourne/maribyrnong.html"
+      },
+      {
+        "label": "BOM Essendon Airport observations",
+        "url": "https://www.bom.gov.au/products/IDV60901/IDV60901.95866.shtml"
+      }
+    ],
+    "gust": [
+      {
+        "label": "WillyWeather wind – Maribyrnong",
+        "url": "https://wind.willyweather.com.au/vic/melbourne/maribyrnong.html"
+      },
+      {
+        "label": "BOM Essendon Airport observations",
+        "url": "https://www.bom.gov.au/products/IDV60901/IDV60901.95866.shtml"
+      }
+    ],
+    "temp": [
+      {
+        "label": "BOM Melbourne forecast",
+        "url": "https://www.bom.gov.au/vic/forecasts/melbourne.shtml"
+      },
+      {
+        "label": "BOM Essendon Airport observations",
+        "url": "https://www.bom.gov.au/products/IDV60901/IDV60901.95866.shtml"
+      }
+    ],
+    "rain": [
+      {
+        "label": "BOM Melbourne radar",
+        "url": "https://www.bom.gov.au/products/IDR023.loop.shtml"
+      },
+      {
+        "label": "WillyWeather rainfall – Maribyrnong",
+        "url": "https://rainfall.willyweather.com.au/vic/melbourne/maribyrnong.html"
+      },
+      {
+        "label": "BOM Melbourne forecast",
+        "url": "https://www.bom.gov.au/vic/forecasts/melbourne.shtml"
+      }
+    ],
+    "storm": [
+      {
+        "label": "BOM Victorian warnings",
+        "url": "https://www.bom.gov.au/vic/warnings/"
+      },
+      {
+        "label": "BOM Melbourne radar",
+        "url": "https://www.bom.gov.au/products/IDR023.loop.shtml"
+      },
+      {
+        "label": "BOM Melbourne forecast",
+        "url": "https://www.bom.gov.au/vic/forecasts/melbourne.shtml"
+      }
+    ],
+    "visibility": [
+      {
+        "label": "BOM Melbourne forecast",
+        "url": "https://www.bom.gov.au/vic/forecasts/melbourne.shtml"
+      },
+      {
+        "label": "BOM Essendon Airport observations",
+        "url": "https://www.bom.gov.au/products/IDV60901/IDV60901.95866.shtml"
+      }
+    ],
+    "darkness": [
+      {
+        "label": "Sunrise & sunset – Maribyrnong",
+        "url": "https://sunrisesunset.willyweather.com.au/vic/melbourne/maribyrnong.html"
+      }
+    ],
+    "tide": [
+      {
+        "label": "BOM tides – Williamstown",
+        "url": "https://www.bom.gov.au/australia/tides/#!/vic-melbourne-williamstown"
+      },
+      {
+        "label": "WillyWeather tides – Maribyrnong",
+        "url": "https://tides.willyweather.com.au/vic/melbourne/maribyrnong.html"
+      },
+      {
+        "label": "Melbourne Water Maribyrnong gauge",
+        "url": "https://www.melbournewater.com.au/water-and-environment/water-management/rainfall-and-river-levels#/reader/230106A"
+      }
+    ],
+    "flood": [
+      {
+        "label": "Melbourne Water river levels (Keilor)",
+        "url": "https://www.melbournewater.com.au/water-and-environment/water-management/rainfall-and-river-levels#/reader/230105A"
+      },
+      {
+        "label": "BOM Victorian warnings",
+        "url": "https://www.bom.gov.au/vic/warnings/"
+      },
+      {
+        "label": "Melbourne Water – Darraweit Guim (upstream)",
+        "url": "https://www.melbournewater.com.au/water-and-environment/water-management/rainfall-and-river-levels#/reader/230100A"
+      }
+    ]
+  }
 }
