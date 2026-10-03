@@ -37,6 +37,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }  /* also hides SVG elements (chart hover marker) */
 body {
   margin: 0;
   background: var(--page);

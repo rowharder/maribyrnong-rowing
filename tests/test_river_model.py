@@ -80,7 +80,7 @@ class SessionLevel(unittest.TestCase):
         start = self.now + self.td(hours=10)
         level, note = self.build.forecast_level_for(self.fc, start, start + self.td(hours=2), self.now)
         self.assertAlmostEqual(level, 1.2 - 0.095 * 1, delta=0.02)
-        self.assertIn("Highest", note)
+        self.assertIn("this session", note)
 
     def test_session_soon_uses_live_reading(self):
         start = self.now + self.td(hours=2)
@@ -90,7 +90,7 @@ class SessionLevel(unittest.TestCase):
         start = self.now + self.td(hours=80)
         level, note = self.build.forecast_level_for(self.fc, start, start + self.td(hours=2), self.now)
         self.assertAlmostEqual(level, 1.2 - 0.72, places=3)
-        self.assertIn("Beyond", note)
+        self.assertIn("Past the 3-day forecast", note)
 
     def test_switched_off_uses_live_reading(self):
         self.fc["use_for_lights"] = False

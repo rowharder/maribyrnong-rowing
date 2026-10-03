@@ -2,7 +2,7 @@
   // Set by the publish step (app.js?v=...). Used to reload open pages when the code changes.
   const MY_VERSION = new URL(document.currentScript.src).searchParams.get("v");
   const ICON = { green: "✓", amber: "!", red: "✕", unknown: "?" };
-  const WORD = { green: "GO", amber: "CAUTION", red: "NO GO", unknown: "CHECK" };
+  const WORD = { green: "GO", amber: "CAUTION", red: "NO GO", unknown: "NO DATA" };
   const LABEL = { green: "Go", amber: "Caution", red: "No go", unknown: "No data" };
   const REFRESH_MS = 10 * 60 * 1000;
 
@@ -24,9 +24,9 @@
       }
       render();
     } catch (e) {
-      $("updated").textContent = "Could not load conditions data.";
+      $("updated").textContent = "Could not load data.";
       $("stale").hidden = false;
-      $("stale").textContent = "Data unavailable – check BOM and Melbourne Water directly.";
+      $("stale").textContent = "No data – check BOM and Melbourne Water directly.";
     }
   }
 
@@ -40,7 +40,7 @@
     })}`;
     $("stale").hidden = !stale;
     if (stale) $("stale").textContent =
-      `Data is ${Math.floor(ageHrs)} hours old – lights shown in grey. Check conditions manually.`;
+      `Data is ${Math.floor(ageHrs)} hours old – lights greyed out. Check conditions yourself.`;
 
     renderWarnings();
     renderGrid(stale);
@@ -53,7 +53,7 @@
     const w = data.now.warnings || [];
     $("warnings").hidden = !w.length;
     $("warnings").innerHTML = w.length
-      ? `<strong>Active BOM warnings</strong><ul>${w.map((x) =>
+      ? `<strong>BOM warnings</strong><ul>${w.map((x) =>
           `<li>${x.link ? `<a href="${esc(x.link)}" target="_blank" rel="noopener">${esc(x.title)}</a>` : esc(x.title)}</li>`).join("")}</ul>`
       : "";
   }
@@ -109,7 +109,7 @@
     if (!c) { $("detail").hidden = true; return; }
     const l = stale ? "unknown" : c.overall;
     let html = `<h2>${light(l)} ${esc(c.date_label)} · ${esc(c.session_label)} ${esc(c.time_label)} – ${WORD[l]}</h2>`;
-    if (c.combinations?.length) html += `<p><strong>Dangerous combination:</strong> ${c.combinations.map(esc).join(", ")}</p>`;
+    if (c.combinations?.length) html += `<p><strong>No-go combination:</strong> ${c.combinations.map(esc).join(", ")}</p>`;
     if (c.bom_text) html += `<p class="bom">BOM: “${esc(c.bom_text)}”</p>`;
     html += `<ul class="factor-list">`;
     data.factors.forEach((f) => {
@@ -136,17 +136,16 @@
           <dt>Rain since 9am</dt><dd>${o.rain_since_9am ?? "–"} mm</dd>
           <dt>Visibility</dt><dd>${o.visibility_km ?? "–"} km</dd></dl>
          <p class="note">Observed ${esc(o.time.slice(8, 10))}:${esc(o.time.slice(10, 12))}</p>`
-      : `<h3>Weather</h3><p>Observations unavailable.</p>`;
+      : `<h3>Weather</h3><p>No data.</p>`;
 
     const g = data.now.gauges || [];
-    $("river").innerHTML = `<h3>River gauges (Melbourne Water)</h3>` + (g.length
+    $("river").innerHTML = `<h3>River gauges</h3>` + (g.length
       ? `<table class="gauges"><thead><tr><th>Gauge</th><th>Level</th><th>Change /hr</th></tr></thead><tbody>${g.map((x) => {
           const r = x.rise_m_per_hr;
           const trend = r == null ? "–" : r > 0.01 ? `<span class="up">▲ ${r.toFixed(2)}</span>` : r < -0.01 ? `▼ ${Math.abs(r).toFixed(2)}` : "steady";
           return `<tr><td>${esc(x.name)}</td><td>${x.level_m.toFixed(2)} m</td><td>${trend}</td></tr>`;
-        }).join("")}</tbody></table>${(g.find((x) => x.flow_m3s != null) || null)
-          ? `<p class="note">Keilor flow: ${g.find((x) => x.flow_m3s != null).flow_m3s.toFixed(1)} m³/s. Upstream gauges give early warning of rises reaching the course.</p>` : ""}`
-      : "<p>River data unavailable.</p>") + riverForecastHtml(data.now.river_forecast);
+        }).join("")}</tbody></table><p class="note">The Flood light uses Keilor (same reading as BOM).</p>`
+      : "<p>No data.</p>") + riverForecastHtml(data.now.river_forecast);
 
     const t = data.now.tides || [];
     const ct = data.now.course_tide;
@@ -155,16 +154,16 @@
       const r = ct.rate_m_per_hr;
       tideHtml += `<dl class="kv">
           <dt>Now</dt><dd><strong>${esc(ct.state || "–")}</strong>${r != null ? ` · ${r < 0 ? "falling" : "rising"} ${Math.abs(r).toFixed(2)} m/hr` : ""}</dd>
-          <dt>Level</dt><dd>${ct.level_m.toFixed(2)} m <span class="note-inline">(${esc(ct.gauge)} gauge, ${esc(ct.time.slice(11, 16))})</span></dd></dl>
+          <dt>Level</dt><dd>${ct.level_m.toFixed(2)} m <span class="note-inline">at ${esc(ct.time.slice(11, 16))}</span></dd></dl>
         ${lineChart("tide", "Water level at the course: measured last 24 hours and predicted next 30 hours", [
           { name: "Measured", cls: "tc-obs", pts: toPts(ct.observed), measured: true },
-          { name: "Predicted", cls: "tc-pred", pts: toPts(ct.predicted) },
+          { name: "Forecast", cls: "tc-pred", pts: toPts(ct.predicted) },
         ])}`;
     }
     tideHtml += t.length
       ? `<dl class="kv">${t.map((x) => `<dt>${esc(x.type)}</dt><dd>${fmtTime(x.time)}</dd>`).join("")}</dl>
-         <p class="note">Measured level from Melbourne Water's Maribyrnong gauge, about 700 m from Poyntons. High/low times from BOM ${esc(data.now.tide_station)} predictions, which match the course to within a few minutes.</p>`
-      : "<p>Tide predictions unavailable.</p>";
+         <p class="note">Measured: Melbourne Water gauge near Poyntons. Times: BOM Williamstown (in step with the course).</p>`
+      : "<p>No data.</p>";
     $("tides").innerHTML = tideHtml;
     wireCharts();
   }
@@ -265,8 +264,8 @@
 
   function riverForecastHtml(fc) {
     if (!fc) return "";
-    const err = fc.typical_error_m?.["+24h"], errHigh = fc.typical_error_high_river_m?.["+24h"];
-    return `<h3 class="sub-h">Keilor forecast <span class="badge">experimental</span></h3>
+    const errHigh = fc.typical_error_high_river_m?.["+24h"];
+    return `<h3 class="sub-h">Keilor forecast <span class="badge">trial</span></h3>
       ${lineChart("river", "Keilor river height: measured and forecast", [
         { name: "Measured", cls: "tc-obs", pts: toPts(fc.observed), measured: true },
         { name: "Forecast", cls: "tc-pred", pts: toPts(fc.with_rain) },
@@ -274,10 +273,10 @@
         { v: fc.thresholds.red, cls: "tc-red", label: `red ${fc.thresholds.red} m` },
         { v: fc.thresholds.yellow, cls: "tc-amber", label: `yellow ${fc.thresholds.yellow} m` },
       ])}
-      <p class="note">Our own forecast from Keilor's current flow and catchment rain, learned from 2018–2024 Melbourne Water records. Catchment rain: ${fc.rain_past_72h_mm} mm in the last 3 days, ${fc.rain_next_72h_mm != null
-          ? `${fc.rain_next_72h_mm} mm forecast for the next 3.` : "<strong>rain forecast unavailable this update</strong> (the forecast assumes no more rain)."}${
-        err != null && errHigh != null ? ` Tested on 2025–26: a day ahead it was typically within ${Math.round(err * 100)} cm in normal conditions and ${Math.round(errHigh * 100)} cm when the river was high. It handles falling rivers well but <strong>under-estimates sharp flood rises</strong>.` : ""}
-        ${fc.use_for_lights ? "Sets the Flood light for sessions more than 3 hours away (nearer sessions use the current Keilor reading)." : "Shown for information – the lights still use the current Keilor level."}</p>`;
+      <p class="note">Our forecast from Keilor's level and catchment rain (${fc.rain_past_72h_mm} mm last 3 days, ${fc.rain_next_72h_mm != null
+          ? `${fc.rain_next_72h_mm} mm forecast next 3` : "<strong>rain forecast unavailable</strong>"}).${
+        errHigh != null ? ` Usually within ${Math.round(errHigh * 100)} cm a day ahead when the river is high, but can miss sudden rises.` : ""}
+        ${fc.use_for_lights ? "Sets the Flood light for sessions 3+ hours away." : ""}</p>`;
   }
 
   function renderSources() {

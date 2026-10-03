@@ -142,9 +142,9 @@ def forecast_level_for(river_fc, start, end, now):
     vals = [r["level_m"] for r in rows
             if start - timedelta(minutes=30) <= datetime.fromisoformat(r["time"]) <= end + timedelta(minutes=30)]
     if vals:
-        return max(vals), "Highest forecast level during this session"
+        return max(vals), "Forecast for this session."
     if rows and start > datetime.fromisoformat(rows[-1]["time"]):
-        return rows[-1]["level_m"], f"Beyond the 3-day forecast - using its last value ({rows[-1]['time'][:10]})"
+        return rows[-1]["level_m"], "Past the 3-day forecast – using its last value."
     return None
 
 
@@ -195,7 +195,7 @@ def main():
                 continue
             fc = forecast_level_for(river_fc, start, end, now)
             session_flood = flood if fc is None else rules.eval_flood(
-                gauges, warnings, th, fc[0], f"{fc[1]}: {fc[0]:.2f} m")
+                gauges, warnings, th, fc[0], fc[1])
             result = rules.evaluate_session(
                 start=start, end=end, is_morning=s["id"] == "am",
                 hours=session_hours(forecast, start, end),
@@ -233,7 +233,8 @@ def main():
             "tide_lag_minutes": src["tide_lag_minutes"],
             "course_tide": course_tide,
             "river_forecast": river_fc,
-            "warnings": warnings["flood"] + warnings["flood_watch"] + warnings["thunderstorm"] + warnings["severe_weather"],
+            "warnings": [{"title": rules.warning_title(w), "link": w["link"]}
+                         for w in warnings["flood"] + warnings["flood_watch"] + warnings["thunderstorm"] + warnings["severe_weather"]],
         },
         "sources": status,
         "stale_after_hours": th["stale_after_hours"],

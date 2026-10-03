@@ -5,6 +5,7 @@ Levels: "green", "amber", "red", or "unknown" (data missing - check manually).
 """
 import copy
 import math
+import re
 from datetime import datetime, timedelta, timezone
 
 GREEN, AMBER, RED, UNKNOWN = "green", "amber", "red", "unknown"
@@ -51,13 +52,13 @@ def eval_wind(hours, th, warnings=None, within_warning_window=False):
     w = max(vals)
     lv = _band(w, th["wind_kn"]["amber"], th["wind_kn"]["red"])
     gusts = [h["gust"] for h in hours if h and h.get("gust") is not None]
-    gust_txt = f"gusts to {max(gusts):.0f} kn" if gusts else ""
-    reasons = [f"Forecast wind up to {w:.0f} kn (amber ≥{th['wind_kn']['amber']}, red ≥{th['wind_kn']['red']})",
-               gust_txt.capitalize()]
+    gust_txt = f"Gusts to {max(gusts):.0f} kn" if gusts else ""
+    reasons = [f"Wind up to {w:.0f} kn (yellow from {th['wind_kn']['amber']}, red from {th['wind_kn']['red']})",
+               gust_txt]
     if warnings and within_warning_window:
         for warn in warnings["severe_weather"]:
             lv = RED
-            reasons.insert(0, f"Active BOM warning: {warn['title']}")
+            reasons.insert(0, f"BOM warning: {warning_title(warn)}")
     return factor(lv, f"{w:.0f} kn", *reasons)
 
 
@@ -69,10 +70,10 @@ def eval_temp(hours, th):
     lv = _band(hi, th["heat_c"]["amber"], th["heat_c"]["red"])
     reasons = []
     if lv != GREEN:
-        reasons.append(f"Hot: up to {hi:.0f}°C (amber ≥{th['heat_c']['amber']}, red ≥{th['heat_c']['red']})")
+        reasons.append(f"Hot: up to {hi}°C (yellow from {th['heat_c']['amber']}, red from {th['heat_c']['red']})")
     if lo < th["cold_c"]["amber"]:
         lv = worst(lv, AMBER)
-        reasons.append(f"Cold: down to {lo:.0f}°C (amber below {th['cold_c']['amber']}) - dress for immersion")
+        reasons.append(f"Cold: down to {lo}°C (yellow under {th['cold_c']['amber']}) – dress for a swim")
     if not reasons:
         reasons.append(f"{lo}°C" if lo == hi else f"{lo}–{hi}°C")
     value = f"{hi:.0f}°C" if hi >= th["heat_c"]["amber"] else f"{lo:.0f}°C"
@@ -86,9 +87,9 @@ def eval_rain(hours, th):
     r = max(vals)
     lv = _band(r, th["rain_mm_per_hr"]["amber"], th["rain_mm_per_hr"].get("red"))
     if lv == GREEN:
-        f = factor(GREEN, "Dry" if r < 0.1 else f"{r:.1f} mm", "No significant rain forecast" if r < 0.1 else f"Light rain, up to {r:.1f} mm/hr")
+        f = factor(GREEN, "Dry" if r < 0.1 else f"{r:.1f} mm", "No rain forecast" if r < 0.1 else f"Light rain, up to {r:.1f} mm/hr")
     else:
-        f = factor(lv, f"{r:.1f} mm", f"Rain up to {r:.1f} mm/hr (amber ≥{th['rain_mm_per_hr']['amber']})")
+        f = factor(lv, f"{r:.1f} mm", f"Rain up to {r:.1f} mm/hr (yellow from {th['rain_mm_per_hr']['amber']})")
     if r >= th["rain_mm_per_hr"]["combo_min"]:
         f["active"] = True  # enough rain to matter in combinations (dark + rain, rain + wind)
     return f
@@ -101,25 +102,25 @@ def eval_lightning(hours, day_text, warnings, th, within_warning_window):
     known = [h for h in hours if h]
     if any(h.get("code") in THUNDER_CODES for h in known):
         lv = RED
-        reasons.append("Thunderstorm (lightning) forecast during the session")
+        reasons.append("Thunderstorm forecast during the session")
     if within_warning_window:
         for w in warnings["thunderstorm"]:
             lv = RED
-            reasons.append(f"Active BOM warning: {w['title']}")
+            reasons.append(f"BOM warning: {warning_title(w)}")
     cape_hit = [h for h in known if (h.get("cape") or 0) >= lt["cape_amber"] and (h.get("rain") or 0) >= lt["cape_rain_mm"]]
     if cape_hit:
         lv = worst(lv, AMBER)
-        reasons.append(f"Unstable air with rain – storms could develop (CAPE {max(h['cape'] for h in cape_hit):.0f})")
+        reasons.append("Unstable air with rain – storms could develop")
     text = (day_text or "").lower()
     hits = [k for k in lt["text_keywords_amber"] if k in text]
     if hits:
         lv = worst(lv, AMBER)
-        reasons.append(f"BOM forecast for the day mentions: {', '.join(hits)}")
+        reasons.append(f"BOM forecast for the day mentions {', '.join(hits)}")
     if not known and day_text is None:
-        return factor(UNKNOWN, "?", "No thunderstorm forecast available")
+        return factor(UNKNOWN, "?", "No forecast available")
     if not reasons:
         reasons.append("No thunderstorms forecast")
-    reasons.append("See lightning or hear thunder? Get off the water and wait 30 minutes after the last thunder.")
+    reasons.append("See lightning or hear thunder? Off the water; wait 30 min after the last thunder.")
     return factor(lv, {GREEN: "None", AMBER: "Possible", RED: "No go"}[lv], *reasons)
 
 
@@ -137,16 +138,16 @@ def eval_visibility(hours, day_text, is_morning, th):
         v = round(min(vals), -1)  # judge on the same rounded value we display
         lv = GREEN if v >= vt["amber"] else (AMBER if v >= vt["red"] else RED)
         if lv != GREEN:
-            reasons.append(f"Forecast visibility down to {_vis_text(v)} "
+            reasons.append(f"Visibility down to {_vis_text(v)} "
                            f"(yellow under {vt['amber']:,} m, red under {vt['red']:,} m)")
     if any(h and h.get("code") in FOG_CODES for h in hours):
         lv = worst(lv, AMBER)
-        reasons.append("Fog in hourly forecast")
+        reasons.append("Fog forecast")
     if is_morning and any(k in (day_text or "").lower() for k in th["fog_keywords"]):
         lv = worst(lv, AMBER)
         reasons.append("BOM forecast mentions fog")
     if v is None and not reasons:
-        return factor(UNKNOWN, "?", "No visibility forecast available")
+        return factor(UNKNOWN, "?", "No forecast available")
     if not reasons:
         reasons.append(f"Visibility {_vis_text(v)}" if v < 10000 else "Visibility 10 km+")
     value = (_vis_text(v) if v < 10000 else "Good") if v is not None else "Fog"
@@ -196,10 +197,10 @@ def eval_darkness(start, end, lat, lon, th, is_morning):
         return factor(UNKNOWN, "?", "Could not calculate first/last light")
     reasons = []
     if start < first_light:
-        reasons.append(f"Starts before first light ({first_light:%H:%M}) – lights needed "
+        reasons.append(f"Before first light ({first_light:%H:%M}) – lights needed "
                        f"{start:%H:%M}–{min(first_light, end):%H:%M}")
     if end > last_light:
-        reasons.append(f"Runs past last light ({last_light:%H:%M}) – lights needed "
+        reasons.append(f"After last light ({last_light:%H:%M}) – lights needed "
                        f"{max(last_light, start):%H:%M}–{end:%H:%M}")
     if reasons:
         f = factor(th["darkness"]["alone_level"], "Lights on", *reasons)
@@ -225,7 +226,7 @@ def tide_at(extremes, when: datetime):
 
 def eval_tide(start, end, extremes, lag_minutes, th):
     if not extremes:
-        return factor(UNKNOWN, "?", "No tide predictions available")
+        return factor(UNKNOWN, "?", "No tide prediction available")
     lag = timedelta(minutes=lag_minutes)
     rates = []
     t = start
@@ -237,16 +238,20 @@ def eval_tide(start, end, extremes, lag_minutes, th):
     if not rates:
         return factor(UNKNOWN, "?", "Session outside tide prediction range")
     max_ebb = -min(rates)
-    course_note = f"Williamstown + {lag_minutes} min"
     direction = "Outgoing" if sum(rates) < 0 else "Incoming"
     if max_ebb < th["tide_ebb_m_per_hr"]["amber"]:
-        detail = f"falling at most {max_ebb:.2f} m/hr" if max_ebb > 0 else "rising"
-        return factor(GREEN, direction, f"{direction} tide ({detail}) at {course_note}")
-    return factor(AMBER, "Outgoing", f"Outgoing tide falling up to {max_ebb:.2f} m/hr (amber ≥{th['tide_ebb_m_per_hr']['amber']})",
-                  "Red if river flow is also high")
+        detail = f", falling at most {max_ebb:.2f} m/hr" if max_ebb > 0 else ""
+        return factor(GREEN, direction, f"{direction} tide{detail}")
+    return factor(AMBER, "Outgoing", f"Outgoing tide, falling up to {max_ebb:.2f} m/hr (yellow from {th['tide_ebb_m_per_hr']['amber']})",
+                  "Red if the river is also high")
 
 
 # ---------------------------------------------------------------- river / flood
+
+def warning_title(w):
+    """BOM titles start with an issue stamp like '03/12:58 EST' - drop it."""
+    return re.sub(r"^\d{2}/\d{2}:\d{2} \w+ ", "", w["title"])
+
 
 def classify_warnings(warnings):
     """Split BOM warnings into those relevant to the Maribyrnong and Melbourne."""
@@ -278,29 +283,28 @@ def eval_flood(gauges, warnings, th, forecast_level=None, forecast_note=""):
         band = ft["keilor_level_m"]
         height = round(keilor["level_m"] if forecast_level is None else forecast_level, 2)
         lv = _band(height, band["amber"], band["red"])
-        what = "Keilor gauge" if forecast_level is None else "Forecast Keilor"
-        reasons.append(f"{what} {height:.2f} m. Green under {band['amber']:.2f} m, "
-                       f"yellow from {band['amber']:.2f} m, red from {band['red']:.2f} m")
+        what = "Keilor" if forecast_level is None else "Keilor forecast"
+        reasons.append(f"{what} {height:.2f} m (yellow from {band['amber']:.2f}, red from {band['red']:.2f})")
         if forecast_level is not None:
-            reasons.append(f"{forecast_note} (now {keilor['level_m']:.2f} m) - experimental forecast")
+            reasons.append(f"{forecast_note} Keilor now {keilor['level_m']:.2f} m.")
     for g in gauges:
         rise = g.get("rise_m_per_hr")
         if rise is None or g["role"] == "course":
             continue
         rlv = _band(rise, ft["upstream_rise_m_per_hr"]["amber"], ft["upstream_rise_m_per_hr"]["red"])
         if rlv != GREEN:
-            reasons.append(f"{g['name']} rising {rise:.2f} m/hr")
+            reasons.append(f"Upstream: {g['name']} rising {rise:.2f} m/hr")
         lv = worst(lv, rlv)
     for w in warnings["flood"]:
         lv = RED
-        reasons.append(f"Active BOM warning: {w['title']}")
+        reasons.append(f"BOM warning: {warning_title(w)}")
     for w in warnings["flood_watch"]:
         lv = worst(lv, AMBER)
-        reasons.append(f"BOM: {w['title']}")
+        reasons.append(f"BOM: {warning_title(w)}")
     if not keilor and not warnings["flood"]:
         lv = worst(lv, UNKNOWN)
-        reasons.append("Keilor gauge unavailable - check river manually")
-    value = (f"Keilor {keilor['level_m']:.2f} m" if forecast_level is None else f"{forecast_level:.2f} m") if keilor else "?"
+        reasons.append("Keilor gauge unavailable – check the river yourself")
+    value = f"{height:.2f} m" if keilor else "?"
     return factor(lv, value, *reasons)
 
 

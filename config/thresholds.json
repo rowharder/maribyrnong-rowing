@@ -1,5 +1,5 @@
 {
-  "_comment": "Safety thresholds. Edit these numbers to tune the traffic lights. Values at or above 'red' are red; at or above 'amber' are amber.",
+  "_comment": "Rule numbers for the traffic lights. 'amber' means yellow (Caution). At or above 'red' = red; at or above 'amber' = yellow.",
   "wind_kn": {
     "amber": 10,
     "red": 15

@@ -1,7 +1,7 @@
 {
   "_comment": "Where the dashboard gets its data. Gauge IDs are Melbourne Water site IDs.",
   "location": {
-    "name": "Maribyrnong River, Maribyrnong",
+    "name": "Maribyrnong River at Poyntons, Essendon",
     "latitude": -37.775,
     "longitude": 144.892,
     "timezone": "Australia/Melbourne"
