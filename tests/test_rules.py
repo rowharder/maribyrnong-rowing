@@ -79,7 +79,8 @@ class Single(unittest.TestCase):
         normal = TH["flood"]["keilor_normal_m"]
         self.assertEqual(lv(normal + 0.05), "green")
         self.assertEqual(lv(normal + 0.3), "amber")
-        self.assertEqual(lv(normal + 0.6), "red")
+        self.assertEqual(lv(normal + 0.55), "amber")
+        self.assertEqual(lv(normal + 0.65), "red")
 
     def test_maribyrnong_flood_warning_is_red(self):
         w = rules.classify_warnings([{"title": "03/10:00 EST Minor Flood Warning for the Maribyrnong River", "link": ""}])
