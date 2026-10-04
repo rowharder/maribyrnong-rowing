@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+import flow_model
 import river_model
 import rules
 import sources
@@ -49,33 +50,21 @@ def session_hours(forecast, start, end):
     return rows
 
 
-def build_course_tide(gauges, tides, lag_minutes, now):
-    """Observed water level at the course gauge plus the Williamstown prediction lined up against it.
-
-    The prediction is shifted to the gauge's datum using the average gap between observed and
-    predicted over the last day - this also absorbs extra height from river flow.
-    """
-    course = next((g for g in gauges if g["role"] == "course"), None)
-    if not course or not tides:
-        return None
+def course_levels(course, now):
+    """Measured water level at the course for the last day: hourly history, then the 6-minute live readings."""
     tz = now.tzinfo
     parse = lambda t: datetime.fromisoformat(t).replace(tzinfo=tz)
     live = [(parse(r["time"]), r["level_m"]) for r in course.get("live", [])]
     first_live = live[0][0] if live else now
     hourly = [(parse(r["time"]), r["level_m"]) for r in course["history"] if parse(r["time"]) < first_live]
-    observed = [(t, v) for t, v in hourly + live if t >= now - timedelta(hours=24)]
-    lag = timedelta(minutes=lag_minutes)
-    gaps = [v - h for t, v in observed[-60:] if (h := rules.tide_at(tides, t - lag)[0]) is not None]
-    if not gaps:
+    return [(t, v) for t, v in hourly + live if t >= now - timedelta(hours=24)]
+
+
+def course_now(gauges):
+    """Water level at the course right now and whether the tide is coming in or going out."""
+    course = next((g for g in gauges if g["role"] == "course"), None)
+    if not course:
         return None
-    offset = sorted(gaps)[len(gaps) // 2]
-    predicted = []
-    t = (now - timedelta(hours=24)).replace(minute=0, second=0, microsecond=0)
-    while t <= now + timedelta(hours=30):
-        h = rules.tide_at(tides, t - lag)[0]
-        if h is not None:
-            predicted.append({"time": t.isoformat(timespec="minutes"), "level_m": round(h + offset, 3)})
-        t += timedelta(minutes=15)
     rate = course.get("rise_m_per_hr")
     return {
         "gauge": course["name"],
@@ -83,24 +72,21 @@ def build_course_tide(gauges, tides, lag_minutes, now):
         "level_m": course["level_m"],
         "rate_m_per_hr": rate,
         "state": None if rate is None else ("Outgoing" if rate < -0.02 else "Incoming" if rate > 0.02 else "Slack"),
-        "observed": [{"time": t.isoformat(timespec="minutes"), "level_m": v} for t, v in observed[::2]],
-        "predicted": predicted,
     }
 
 
-def build_river_forecast(src, th, gauges, now, status):
-    """Our experimental Keilor forecast: observed levels plus the forecast using forecast rain."""
-    cfg = src.get("river_forecast")
+def keilor_flow_forecast(src, keilor, now, status):
+    """Keilor flow: measured, then our forecast from catchment rain. Returns ([(time, m³/s)], notes, rain totals)."""
+    tz = now.tzinfo
+    measured = [(datetime.strptime(r["time"], "%Y-%m-%d %H:%M:%S").replace(tzinfo=tz), r["flow_m3s"])
+                for r in keilor.get("flow_history") or []]
+    cfg = src["river_forecast"]
     model_path = ROOT / "config" / "river_model.json"
-    keilor = next((g for g in gauges if g["role"] == "keilor"), None)
-    if not cfg or not model_path.exists() or not keilor or keilor.get("flow_m3s") is None:
-        return None
-    model = json.loads(model_path.read_text())
     past = attempt(status, "Melbourne Water catchment rain", sources.fetch_catchment_rain, src, now, 30)
     future = attempt(status, "Catchment rain forecast (Open-Meteo)", sources.fetch_catchment_rain_forecast, src)
-    if past is None:
-        return None
-    tz = now.tzinfo
+    if past is None or not model_path.exists():
+        return measured, ["Rain data unavailable – river flow held at its current value."], {}
+    model = json.loads(model_path.read_text())
     t0 = now.replace(minute=0, second=0, microsecond=0)
     past_hours = [t0 - timedelta(hours=h) for h in range(river_model.HISTORY_HOURS - 1, -1, -1)]
     past_rain = river_model.catchment_rain(
@@ -108,44 +94,78 @@ def build_river_forecast(src, th, gauges, now, status):
     horizon = cfg["hours_ahead"]
     future_hours = [t0 + timedelta(hours=h) for h in range(1, horizon + 1)]
     future_rain = [(future or {}).get(t.strftime("%Y-%m-%dT%H:00"), 0.0) or 0.0 for t in future_hours]
-    rating = model["rating"]
-    level = lambda q: round(river_model.flow_to_level(q, rating), 3)
     q_now = keilor["flow_m3s"]
-    hist = keilor.get("flow_history") or [q_now]
+    hist = [q for _, q in measured] or [q_now]
     q_3h = hist[-4] if len(hist) >= 4 else None
-    wet = river_model.forecast(model, q_now, q_3h, past_rain, future_rain, horizon)
+    flows = river_model.forecast(model, q_now, q_3h, past_rain, future_rain, horizon)
+    last = measured[-1][0] if measured else now
+    notes = [] if future is not None else ["Rain forecast unavailable – river forecast assumes no more rain."]
+    rain = {"past_72h_mm": round(sum(past_rain[-72:]), 1),
+            "next_72h_mm": round(sum(future_rain), 1) if future is not None else None}
+    return measured + [(t, q) for t, q in zip(future_hours, flows) if t > last], notes, rain
+
+
+def build_flow(src, th, gauges, tides, now, last_session_end, status):
+    """Water speed at the course (flow_model.py): estimated from measurements for the last day, then
+    forecast from Keilor's flow forecast and the tide prediction. Also the water heights at Poyntons and
+    at the river mouth (Williamstown), on the course gauge's datum."""
+    keilor = next((g for g in gauges if g["role"] == "keilor"), None)
+    course = next((g for g in gauges if g["role"] == "course"), None)
+    model_path = ROOT / "config" / "flow_model.json"
+    if not keilor or keilor.get("flow_m3s") is None or not tides or not model_path.exists():
+        return None
+    model = json.loads(model_path.read_text())
+    geom = src["flow"]
+    flows, notes, rain = keilor_flow_forecast(src, keilor, now, status)
+    lag = timedelta(hours=geom["keilor_lag_hours"])
+    flow_end = flows[-1][0] + lag
+    epoch = [(t.timestamp(), q) for t, q in flows]
+
+    def q_at(t):  # Keilor's flow reaching the course at t; held at its last value past the forecast
+        x = (t - lag).timestamp()
+        return flows[-1][1] if x > epoch[-1][0] else flow_model.interp(epoch, x)
+
+    tide_lag = timedelta(minutes=src["tide_lag_minutes"])
+    tide = lambda t: rules.tide_at(tides, t - tide_lag)
+    observed = course_levels(course, now) if course else []
+    gaps = [v - h - flow_model.setup_m(q, model["setup"]) for t, v in observed[-60:]
+            if (h := tide(t)[0]) is not None and (q := q_at(t)) is not None]
+    offset = sorted(gaps)[len(gaps) // 2] if gaps else 0.0
+    times, t = [], now.replace(minute=now.minute // 15 * 15, second=0, microsecond=0)
+    while t <= max(now + timedelta(hours=src["river_forecast"]["hours_ahead"]), last_session_end):
+        times.append(t)
+        t += timedelta(minutes=15)
+    forecast = flow_model.forecast_rows(times, q_at, tide, offset, model, geom)
+    for r in forecast:
+        r["held"] = datetime.fromisoformat(r["time"]) > flow_end
+    past_mouth = []
+    t = (now - timedelta(hours=24)).replace(minute=0, second=0, microsecond=0)
+    while t < now:
+        if (h := tide(t)[0]) is not None:
+            past_mouth.append({"time": t.isoformat(timespec="minutes"), "level_m": round(h + offset, 3)})
+        t += timedelta(minutes=15)
     iso = lambda t: t.isoformat(timespec="minutes")
-    band = th["flood"]["keilor_level_m"]
-    # Shift so the forecast starts exactly at the measured level (rating curve isn't perfect).
-    offset = keilor["level_m"] - level(keilor["flow_m3s"])
     return {
         "issued": iso(now),
-        "use_for_lights": cfg["use_for_lights"],
-        "observed": [{"time": iso(datetime.strptime(r["time"], "%Y-%m-%d %H:%M:%S").replace(tzinfo=tz)), "level_m": r["level_m"]}
-                     for r in keilor["history"]],
-        "with_rain": [{"time": iso(t), "level_m": round(level(q) + offset, 3)} for t, q in zip(future_hours, wet)],
-        "rain_past_72h_mm": round(sum(past_rain[-72:]), 1),
-        "rain_next_72h_mm": round(sum(future_rain), 1) if future is not None else None,
-        "thresholds": {"yellow": band["amber"], "red": band["red"]},
-        "typical_error_m": model.get("validation_2025_2026", {}).get("rain", {}).get("typical_error_m"),
-        "typical_error_high_river_m": model.get("validation_2025_2026", {}).get("rain", {}).get("typical_error_high_river_m"),
-        "fitted": model.get("fitted"),
+        "estimated": flow_model.measured_rows(observed, q_at, model, geom)[::2],
+        "forecast": forecast,
+        "observed_levels": [{"time": iso(t), "level_m": v} for t, v in observed[::2]],
+        "mouth_past": past_mouth,
+        "flow_forecast_end": iso(flow_end),
+        "thresholds": {"yellow": th["flow"]["speed_kmh"]["amber"], "red": th["flow"]["speed_kmh"]["red"]},
+        "geometry": {k: v for k, v in geom.items() if not k.startswith("_")},
+        "rain": rain,
+        "notes": notes,
     }
 
 
-def forecast_level_for(river_fc, start, end, now):
-    """(level, note) for a session more than 3 h away: highest forecast Keilor level during it, or the
-    forecast's last value if the session is past the end of the forecast. None = use the live reading."""
-    if not river_fc or not river_fc["use_for_lights"] or start - now < timedelta(hours=3):
-        return None
-    rows = river_fc["with_rain"]
-    vals = [r["level_m"] for r in rows
-            if start - timedelta(minutes=30) <= datetime.fromisoformat(r["time"]) <= end + timedelta(minutes=30)]
-    if vals:
-        return max(vals), "Forecast for this session."
-    if rows and start > datetime.fromisoformat(rows[-1]["time"]):
-        return rows[-1]["level_m"], "Past the 3-day forecast – using its last value."
-    return None
+def session_flow(flow, start, end):
+    """Forecast speed rows during a session, and a note if they go past the river forecast."""
+    if not flow:
+        return [], ""
+    rows = [r for r in flow["forecast"] if start <= datetime.fromisoformat(r["time"]) <= end]
+    held = any(r["held"] for r in rows)
+    return rows, "Past the 3-day river forecast – Keilor flow held at its last value." if held else " ".join(flow["notes"])
 
 
 def site_version():
@@ -181,44 +201,42 @@ def main():
     if raw_warnings is None:
         # Can't see warnings: flag it rather than silently assuming none.
         warnings["flood_watch"].append({"title": "BOM warnings feed unavailable - check bom.gov.au", "link": ""})
-    flood = rules.eval_flood(gauges, warnings, th)
-    river_fc = build_river_forecast(src, th, gauges, now, status)
-
-    columns = []
+    sessions = []
     for d in range(src["days_to_show"]):
         day = today + timedelta(days=d)
-        for s in src["sessions"]:
-            if day.weekday() >= 5 and "weekend" in s:
-                s = s | s["weekend"]
-            start, end = at(day, s["start"], tz), at(day, s["end"], tz)
-            if end < now:
-                continue
-            fc = forecast_level_for(river_fc, start, end, now)
-            soon = start - now < timedelta(hours=24)  # BOM Flood Watch only counts for the next 24 h
-            session_flood = rules.eval_flood(gauges, warnings, th, watch_applies=soon) if fc is None else \
-                rules.eval_flood(gauges, warnings, th, fc[0], fc[1], watch_applies=soon)
-            result = rules.evaluate_session(
-                start=start, end=end, is_morning=s["id"] == "am",
-                hours=session_hours(forecast, start, end),
-                day_text=day_text.get(day.isoformat()),
-                tides=tides, warnings=warnings, flood=session_flood,
-                lat=loc["latitude"], lon=loc["longitude"], th=th,
-                tide_lag=src["tide_lag_minutes"], now=now,
-            )
-            columns.append({
-                "date": day.isoformat(),
-                "day_label": "Today" if d == 0 else ("Tomorrow" if d == 1 else f"{day:%a}"),
-                "date_label": f"{day:%a} {day.day} {day:%b}",
-                "session": s["id"],
-                "session_label": s["label"],
-                "time_label": rules.clock_range(start, end),
-                "start": start.isoformat(timespec="minutes"),
-                "end": end.isoformat(timespec="minutes"),
-                "bom_text": day_text.get(day.isoformat()),
-                **result,
-            })
+        for sess in src["sessions"]:
+            if day.weekday() >= 5 and "weekend" in sess:
+                sess = sess | sess["weekend"]
+            start, end = at(day, sess["start"], tz), at(day, sess["end"], tz)
+            if end >= now:
+                sessions.append((d, day, sess, start, end))
+    last_end = max((e for *_, e in sessions), default=now)
+    flow = attempt(status, "Flow estimate", build_flow, src, th, gauges, tides, now, last_end, status)
 
-    course_tide = build_course_tide(gauges, tides, src["tide_lag_minutes"], now)
+    columns = []
+    for d, day, s, start, end in sessions:
+        rows, note = session_flow(flow, start, end)
+        soon = start - now < timedelta(hours=24)  # BOM Flood Watch only counts for the next 24 h
+        result = rules.evaluate_session(
+            start=start, end=end, is_morning=s["id"] == "am",
+            hours=session_hours(forecast, start, end),
+            day_text=day_text.get(day.isoformat()),
+            warnings=warnings, flow=rules.eval_flow(rows, gauges, warnings, th, soon, note),
+            lat=loc["latitude"], lon=loc["longitude"], th=th, now=now,
+        )
+        columns.append({
+            "date": day.isoformat(),
+            "day_label": "Today" if d == 0 else ("Tomorrow" if d == 1 else f"{day:%a}"),
+            "date_label": f"{day:%a} {day.day} {day:%b}",
+            "session": s["id"],
+            "session_label": s["label"],
+            "time_label": rules.clock_range(start, end),
+            "start": start.isoformat(timespec="minutes"),
+            "end": end.isoformat(timespec="minutes"),
+            "bom_text": day_text.get(day.isoformat()),
+            **result,
+        })
+
     next_tides = [t for t in tides if datetime.fromisoformat(t["time"]) > now][:4]
     out = {
         "generated_at": now.isoformat(timespec="minutes"),
@@ -229,12 +247,12 @@ def main():
         "columns": columns,
         "now": {
             "observations": obs,
-            "gauges": [{k: v for k, v in g.items() if k not in ("history", "live")} for g in gauges],
+            "gauges": [{k: v for k, v in g.items() if k not in ("history", "live", "flow_history")} for g in gauges],
             "tides": next_tides,
             "tide_station": src["bom_tide_station"]["name"],
             "tide_lag_minutes": src["tide_lag_minutes"],
-            "course_tide": course_tide,
-            "river_forecast": river_fc,
+            "course_tide": course_now(gauges),
+            "flow": flow,
             "warnings": [{"title": rules.warning_title(w), "link": w["link"]}
                          for w in warnings["flood"] + warnings["flood_watch"] + warnings["thunderstorm"] + warnings["severe_weather"]],
         },

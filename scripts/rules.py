@@ -18,8 +18,7 @@ FACTORS = [
     ("rain", "Rain"),
     ("lightning", "Lightning"),
     ("visibility", "Fog"),
-    ("tide", "Tide"),
-    ("flood", "Flood"),
+    ("flow", "Flow"),
 ]
 
 THUNDER_CODES = {95, 96, 99}
@@ -239,29 +238,7 @@ def tide_at(extremes, when: datetime):
     return None, None
 
 
-def eval_tide(start, end, extremes, lag_minutes, th):
-    if not extremes:
-        return factor(UNKNOWN, "?", "No tide prediction available")
-    lag = timedelta(minutes=lag_minutes)
-    rates = []
-    t = start
-    while t <= end:
-        _, r = tide_at(extremes, t - lag)
-        if r is not None:
-            rates.append(r)
-        t += timedelta(minutes=15)
-    if not rates:
-        return factor(UNKNOWN, "?", "Session outside tide prediction range")
-    max_ebb = -min(rates)
-    direction = "Outgoing" if sum(rates) < 0 else "Incoming"
-    if max_ebb < th["tide_ebb_m_per_hr"]["amber"]:
-        detail = f", falling at most {max_ebb:.2f} m/hr" if max_ebb > 0 else ""
-        return factor(GREEN, direction, f"{direction} tide{detail}")
-    return factor(AMBER, "Outgoing", f"Outgoing tide, falling up to {max_ebb:.2f} m/hr (yellow from {th['tide_ebb_m_per_hr']['amber']})",
-                  "Red if the river is also high")
-
-
-# ---------------------------------------------------------------- river / flood
+# ---------------------------------------------------------------- river flow
 
 def warning_title(w):
     """BOM titles start with an issue stamp like '03/12:58 EST' - drop it."""
@@ -274,9 +251,9 @@ def classify_warnings(warnings):
     for w in warnings or []:
         t = w["title"]
         tl = t.lower()
-        if "cancellation" in tl:
-            continue
-        if "maribyrnong" in tl and "flood warning" in tl and "final" not in tl:
+        if "cancellation" in tl or tl.startswith("final ") or " final " in tl:
+            continue  # "Final ..." means the warning or watch has ended
+        if "maribyrnong" in tl and "flood warning" in tl:
             out["flood"].append(w)
         elif "flood watch" in tl and ("central" in tl or "maribyrnong" in tl):
             out["flood_watch"].append(w)
@@ -287,22 +264,25 @@ def classify_warnings(warnings):
     return out
 
 
-def eval_flood(gauges, warnings, th, forecast_level=None, forecast_note="", watch_applies=True):
-    """River state from the live Keilor reading, or `forecast_level` (predicted Keilor height
-    during a later session) when given. A BOM Flood Watch only counts if `watch_applies`
-    (sessions within the next 24 hours)."""
-    ft = th["flood"]
-    lv, reasons = GREEN, []
-    keilor = next((g for g in gauges if g["role"] == "keilor"), None)
-    above = None
-    if keilor:
-        band = ft["keilor_level_m"]
-        height = round(keilor["level_m"] if forecast_level is None else forecast_level, 2)
-        lv = _band(height, band["amber"], band["red"])
-        what = "Keilor" if forecast_level is None else "Keilor forecast"
-        reasons.append(f"{what} {height:.2f} m (yellow from {band['amber']:.2f}, red from {band['red']:.2f})")
-        if forecast_level is not None:
-            reasons.append(f"{forecast_note} Keilor now {keilor['level_m']:.2f} m.")
+def _kmh(v):
+    return f"{abs(v):.1f} km/h {'out' if v >= 0 else 'in'}"
+
+
+def eval_flow(rows, gauges, warnings, th, watch_applies=True, note=""):
+    """Water speed at the course during a session (flow_model rows: speed_kmh = river + tide, positive = out).
+    Also red for a BOM Maribyrnong Flood Warning, yellow for a Flood Watch if `watch_applies` (sessions in
+    the next 24 hours), and yellow/red for an upstream gauge rising fast (a pulse the forecast can't see)."""
+    ft = th["flow"]
+    band = ft["speed_kmh"]
+    lv, reasons, value = GREEN, [], "?"
+    if rows:
+        fast = max(rows, key=lambda r: abs(r["speed_kmh"]))
+        speed = round(abs(fast["speed_kmh"]), 1)  # judge on the same rounded number we display
+        lv = _band(speed, band["amber"], band["red"])
+        value = f"{speed:.1f} km/h"
+        reasons.append(f"Up to {_kmh(fast['speed_kmh'])} (river {fast['river_kmh']:.1f} + tide {fast['tide_kmh']:+.1f}; "
+                       f"yellow from {band['amber']}, red from {band['red']})")
+        reasons.append(f"Keilor flow {fast['flow_m3s']:.0f} m³/s{f'. {note}' if note else ''}")
     for g in gauges:
         rise = g.get("rise_m_per_hr")
         if rise is None or g["role"] == "course":
@@ -317,10 +297,9 @@ def eval_flood(gauges, warnings, th, forecast_level=None, forecast_note="", watc
     for w in (warnings["flood_watch"] if watch_applies else []):
         lv = worst(lv, AMBER)
         reasons.append(f"BOM: {warning_title(w)}")
-    if not keilor and not warnings["flood"]:
+    if not rows and not warnings["flood"]:
         lv = worst(lv, UNKNOWN)
-        reasons.append("Keilor gauge unavailable – check the river yourself")
-    value = f"{height:.2f} m" if keilor else "?"
+        reasons.append("No water speed estimate (Keilor flow or tide missing) – check the river yourself")
     return factor(lv, value, *reasons)
 
 
@@ -354,8 +333,7 @@ def apply_combinations(factors, combos):
     return hits
 
 
-def evaluate_session(*, start, end, is_morning, hours, day_text, tides, warnings,
-                     flood, lat, lon, th, tide_lag, now):
+def evaluate_session(*, start, end, is_morning, hours, day_text, warnings, flow, lat, lon, th, now):
     within_warning_window = start - now < timedelta(hours=24)
     factors = {
         "wind": eval_wind(hours, th, warnings, within_warning_window),
@@ -363,8 +341,7 @@ def evaluate_session(*, start, end, is_morning, hours, day_text, tides, warnings
         "rain": eval_rain(hours, th),
         "lightning": eval_lightning(hours, day_text, warnings, th, within_warning_window),
         "visibility": eval_visibility(hours, day_text, is_morning, th),
-        "tide": eval_tide(start, end, tides, tide_lag, th),
-        "flood": copy.deepcopy(flood),
+        "flow": copy.deepcopy(flow),
     }
     # Darkness isn't a light of its own, but takes part in combinations (dark + fog, dark + rain).
     dark = eval_darkness(start, end, lat, lon, th, is_morning)
@@ -375,7 +352,7 @@ def evaluate_session(*, start, end, is_morning, hours, day_text, tides, warnings
 
 
 def drivers(factors, overall):
-    """Short labels for what set the overall light, e.g. ["Dark + fog"] or ["Wind", "Flood"]."""
+    """Short labels for what set the overall light, e.g. ["Dark + fog"] or ["Wind", "Flow"]."""
     if overall == GREEN:
         return []
     labels = dict(FACTORS)

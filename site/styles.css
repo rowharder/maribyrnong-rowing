@@ -174,5 +174,8 @@ footer { padding-block: 8px 28px; color: var(--muted); font-size: .82rem; text-a
 .tc-line.tc-red { stroke: var(--red); }
 .tc-line.tc-amber { stroke: var(--amber); }
 .tc-line-label { font-size: 7.5px; }
+.tc-line.tc-zero { stroke: var(--ink-2); stroke-dasharray: none; opacity: .5; }
+.tc-mouth { fill: none; stroke: var(--ink-2); stroke-width: 1.5; stroke-dasharray: 1 2.5; stroke-linecap: round; }
+.key.tc-mouth { border-top: 2px dotted var(--ink-2); }
 .sub-h { margin-top: 14px; display: flex; align-items: center; gap: 8px; }
 .badge { font-size: .68rem; font-weight: 600; color: var(--ink-2); border: 1px solid var(--border); border-radius: 999px; padding: 1px 7px; }

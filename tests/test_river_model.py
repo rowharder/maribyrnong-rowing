@@ -65,37 +65,33 @@ class FittedModel(unittest.TestCase):
         self.assertLess(out[-1], 40.0)
 
 
-class SessionLevel(unittest.TestCase):
+class SessionFlow(unittest.TestCase):
+    """build.session_flow picks the forecast speed rows inside a session."""
+
     def setUp(self):
         import build
         from datetime import datetime, timedelta
         from zoneinfo import ZoneInfo
         self.build, self.td = build, timedelta
         self.now = datetime(2026, 10, 4, 8, 0, tzinfo=ZoneInfo("Australia/Melbourne"))
-        rows = [{"time": (self.now + timedelta(hours=h)).isoformat(timespec="minutes"), "level_m": 1.2 - h * 0.01}
-                for h in range(1, 73)]
-        self.fc = {"use_for_lights": True, "with_rain": rows}
+        rows = [{"time": (self.now + timedelta(minutes=15 * i)).isoformat(timespec="minutes"), "speed_kmh": i / 100,
+                 "held": i > 72 * 4} for i in range(100 * 4)]
+        self.flow = {"forecast": rows, "notes": []}
 
-    def test_session_inside_forecast_uses_highest_level(self):
+    def test_rows_inside_session_only(self):
         start = self.now + self.td(hours=10)
-        level, note = self.build.forecast_level_for(self.fc, start, start + self.td(hours=2), self.now)
-        self.assertAlmostEqual(level, 1.2 - 0.095 * 1, delta=0.02)
-        self.assertIn("this session", note)
+        rows, note = self.build.session_flow(self.flow, start, start + self.td(hours=2))
+        self.assertEqual(len(rows), 9)  # 15-minute steps, both ends included
+        self.assertEqual(note, "")
 
-    def test_session_soon_uses_live_reading(self):
-        start = self.now + self.td(hours=2)
-        self.assertIsNone(self.build.forecast_level_for(self.fc, start, start + self.td(hours=2), self.now))
-
-    def test_session_past_forecast_uses_last_value(self):
+    def test_past_forecast_says_flow_is_held(self):
         start = self.now + self.td(hours=80)
-        level, note = self.build.forecast_level_for(self.fc, start, start + self.td(hours=2), self.now)
-        self.assertAlmostEqual(level, 1.2 - 0.72, places=3)
-        self.assertIn("Past the 3-day forecast", note)
+        rows, note = self.build.session_flow(self.flow, start, start + self.td(hours=2))
+        self.assertTrue(rows)
+        self.assertIn("held", note)
 
-    def test_switched_off_uses_live_reading(self):
-        self.fc["use_for_lights"] = False
-        start = self.now + self.td(hours=10)
-        self.assertIsNone(self.build.forecast_level_for(self.fc, start, start + self.td(hours=2), self.now))
+    def test_no_flow_estimate(self):
+        self.assertEqual(self.build.session_flow(None, self.now, self.now), ([], ""))
 
 
 if __name__ == "__main__":

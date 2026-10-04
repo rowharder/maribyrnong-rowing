@@ -135,43 +135,28 @@
         "url": "https://www.bom.gov.au/products/IDV60901/IDV60901.95866.shtml"
       }
     ],
-    "tide": [
+    "flow": [
       {
-        "label": "BOM tides – Williamstown",
-        "url": "https://www.bom.gov.au/australia/tides/#!/vic-melbourne-williamstown"
-      },
-      {
-        "label": "WillyWeather tides – Maribyrnong",
-        "url": "https://tides.willyweather.com.au/vic/melbourne/maribyrnong.html"
-      },
-      {
-        "label": "Melbourne Water Maribyrnong gauge",
+        "label": "Melbourne Water Maribyrnong gauge (near Poyntons)",
         "url": "https://www.melbournewater.com.au/water-and-environment/water-management/rainfall-and-river-levels#/reader/230106A"
-      }
-    ],
-    "flood": [
-      {
-        "label": "BOM river heights – Maribyrnong at Keilor",
-        "url": "https://www.bom.gov.au/cgi-bin/wrap_fwo.pl?IDV60201.html"
       },
       {
         "label": "Melbourne Water river levels (Keilor)",
         "url": "https://www.melbournewater.com.au/water-and-environment/water-management/rainfall-and-river-levels#/reader/230105A"
       },
       {
-        "label": "BOM Victorian warnings",
-        "url": "https://www.bom.gov.au/vic/warnings/"
+        "label": "BOM tides – Williamstown",
+        "url": "https://www.bom.gov.au/australia/tides/#!/vic-melbourne-williamstown"
       },
       {
-        "label": "Melbourne Water – Darraweit Guim (upstream)",
-        "url": "https://www.melbournewater.com.au/water-and-environment/water-management/rainfall-and-river-levels#/reader/230100A"
+        "label": "BOM Victorian warnings",
+        "url": "https://www.bom.gov.au/vic/warnings/"
       }
     ]
   },
   "_sessions_comment": "Times are local. 'weekend' overrides the times on Saturday and Sunday.",
   "river_forecast": {
-    "_comment": "Our experimental Keilor forecast (scripts/river_model.py, fitted by scripts/fit_river_model.py). 'use_for_lights': false = chart only; true = River/flood light for future sessions uses the forecast.",
-    "use_for_lights": true,
+    "_comment": "Our Keilor flow forecast from catchment rain (scripts/river_model.py, fitted by scripts/fit_river_model.py). Feeds the Flow light.",
     "hours_ahead": 72,
     "rain_gauges": [
       "230105A",
@@ -201,6 +186,14 @@
         "longitude": 144.84
       }
     ]
+  },
+  "flow": {
+    "_comment": "River shape for the Flow light (scripts/flow_model.py). Estimates, measured on OpenStreetMap in Oct 2026: width at the course 47–61 m; water surface from the course up to where the mapped river ends near Solomon's Ford (about 8.9 km of river) 360,000 m². depth_m is a guess - average depth at mean water level. Speed scales with 1/(width x depth), so correct these if anyone measures them.",
+    "width_m": 52,
+    "depth_m": 2.5,
+    "upstream_tidal_area_m2": 360000,
+    "keilor_lag_hours": 2,
+    "_lag_comment": "Hours for Keilor's flow to reach the course (about 10 km)."
   },
   "lights_link": {
     "label": "Sunrise & sunset – Maribyrnong",

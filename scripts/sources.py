@@ -159,7 +159,7 @@ def fetch_gauge(src, gauge, now: datetime):
             flows = sorted((r["dateTime"], r["meanRiverFlow_m3"]) for r in flows if r["meanRiverFlow_m3"] is not None)
             if flows:
                 out["flow_m3s"] = flows[-1][1]
-                out["flow_history"] = [v for _, v in flows[-6:]]
+                out["flow_history"] = [{"time": t, "flow_m3s": v} for t, v in flows[-72:]]
         except Exception:
             pass
     return out

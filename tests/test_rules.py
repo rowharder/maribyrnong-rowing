@@ -13,8 +13,7 @@ TH = json.loads((Path(__file__).resolve().parent.parent / "config" / "thresholds
 TZ = ZoneInfo("Australia/Melbourne")
 LAT, LON = -37.775, 144.892
 NO_WARNINGS = {"flood": [], "flood_watch": [], "thunderstorm": [], "severe_weather": []}
-CALM_RIVER = [{"role": "keilor", "name": "Keilor", "level_m": 0.4, "flow_m3s": 4, "rise_m_per_hr": 0.0}]
-HIGH_RIVER = [{"role": "keilor", "name": "Keilor", "level_m": 0.8, "flow_m3s": 30, "rise_m_per_hr": 0.0}]  # yellow
+QUIET_GAUGES = [{"role": "keilor", "name": "Keilor", "level_m": 0.4, "rise_m_per_hr": 0.0}]
 
 
 def hour(**kw):
@@ -22,34 +21,34 @@ def hour(**kw):
     return base | kw
 
 
-# Falling all morning (ebb ~0.19 m/hr) / rising all morning.
-EBB_TIDES = [
-    {"time": "2026-10-10T00:00:00+11:00", "type": "High", "height": 1.5},
-    {"time": "2026-10-10T12:30:00+11:00", "type": "Low", "height": 0.0},
-    {"time": "2026-10-10T23:59:00+11:00", "type": "High", "height": 1.5},
-]
-RISING_TIDES = [
-    {"time": "2026-10-10T00:00:00+11:00", "type": "Low", "height": 0.0},
-    {"time": "2026-10-10T12:30:00+11:00", "type": "High", "height": 1.5},
-    {"time": "2026-10-10T23:59:00+11:00", "type": "Low", "height": 0.0},
-]
+def speed(kmh, river=None):
+    """One flow_model row with the given speed (km/h, positive = out)."""
+    river = kmh if river is None else river
+    return {"speed_kmh": kmh, "river_kmh": river, "tide_kmh": kmh - river, "flow_m3s": 20.0}
 
 
-def session(hours, *, morning=True, tides=RISING_TIDES, gauges=CALM_RIVER, warnings=NO_WARNINGS, day_text=""):
+CALM_FLOW = [speed(0.4), speed(0.6)]
+FAST_FLOW = [speed(2.5)]  # yellow
+
+
+def flow(rows=CALM_FLOW, gauges=QUIET_GAUGES, warnings=NO_WARNINGS, watch_applies=True):
+    return rules.eval_flow(rows, gauges, warnings, TH, watch_applies)
+
+
+def session(hours, *, morning=True, flow_rows=CALM_FLOW, warnings=NO_WARNINGS, day_text=""):
     start = datetime(2026, 10, 10, 5, 30, tzinfo=TZ) if morning else datetime(2026, 10, 10, 18, 0, tzinfo=TZ)
     end = datetime(2026, 10, 10, 7, 0, tzinfo=TZ) if morning else datetime(2026, 10, 10, 20, 0, tzinfo=TZ)
     # Daytime variant (no darkness) for isolating other rules.
     if morning == "day":
         start, end = datetime(2026, 10, 10, 10, 0, tzinfo=TZ), datetime(2026, 10, 10, 11, 30, tzinfo=TZ)
-    flood = rules.eval_flood(gauges, warnings, TH)
     return rules.evaluate_session(start=start, end=end, is_morning=bool(morning), hours=hours, day_text=day_text,
-                                  tides=tides, warnings=warnings, flood=flood, lat=LAT, lon=LON, th=TH,
-                                  tide_lag=0, now=start)
+                                  warnings=warnings, flow=flow(flow_rows, warnings=warnings), lat=LAT, lon=LON,
+                                  th=TH, now=start)
 
 
 class Single(unittest.TestCase):
     def test_calm_daytime_is_green(self):
-        r = session([hour()] * 3, morning="day", tides=RISING_TIDES)
+        r = session([hour()] * 3, morning="day")
         self.assertEqual(r["overall"], "green", r)
 
     def test_wind_bands(self):
@@ -84,34 +83,48 @@ class Single(unittest.TestCase):
         self.assertFalse(r["lights"]["needed"])
         self.assertEqual(r["lights"]["short"], "")
 
-    def test_outgoing_tide_alone_is_amber(self):
-        r = session([hour()] * 3, morning="day", tides=EBB_TIDES)
-        self.assertEqual(r["factors"]["tide"]["level"], "amber")
-        self.assertEqual(r["overall"], "amber")
+    def test_flow_speed_bands(self):
+        self.assertEqual(flow([speed(1.94)])["level"], "green")   # shows 1.9 km/h
+        self.assertEqual(flow([speed(1.96)])["level"], "amber")   # shows 2.0 km/h
+        self.assertEqual(flow([speed(3.9)])["level"], "amber")
+        self.assertEqual(flow([speed(4.0)])["level"], "red")
 
-    def test_keilor_level_bands(self):
-        def lv(level):
-            return rules.eval_flood([{"role": "keilor", "name": "Keilor", "level_m": level}], NO_WARNINGS, TH)["level"]
-        self.assertEqual(lv(0.59), "green")
-        self.assertEqual(lv(0.60), "amber")
-        self.assertEqual(lv(0.99), "amber")
-        self.assertEqual(lv(1.00), "red")
+    def test_flow_judged_on_fastest_either_way(self):
+        f = flow([speed(0.5), speed(-2.2, river=0.3), speed(1.0)])
+        self.assertEqual(f["level"], "amber")
+        self.assertEqual(f["value"], "2.2 km/h")
+        self.assertIn("2.2 km/h in", f["reasons"][0])
+
+    def test_flow_reason_splits_river_and_tide(self):
+        f = flow([speed(1.3, river=0.9)])
+        self.assertIn("river 0.9 + tide +0.4", f["reasons"][0])
+
+    def test_no_flow_estimate_is_unknown(self):
+        self.assertEqual(flow([])["level"], "unknown")
+
+    def test_upstream_gauge_rising_fast(self):
+        rising = [{"role": "upstream", "name": "Darraweit Guim", "level_m": 1.5, "rise_m_per_hr": 0.6}]
+        self.assertEqual(flow(gauges=rising)["level"], "red")
 
     def test_flood_watch_only_counts_when_it_applies(self):
         w = rules.classify_warnings([{"title": "Flood Watch for parts of Central Victoria", "link": ""}])
-        self.assertEqual(rules.eval_flood(CALM_RIVER, w, TH)["level"], "amber")
-        self.assertEqual(rules.eval_flood(CALM_RIVER, w, TH, watch_applies=False)["level"], "green")
+        self.assertEqual(flow(warnings=w)["level"], "amber")
+        self.assertEqual(flow(warnings=w, watch_applies=False)["level"], "green")
 
     def test_maribyrnong_flood_warning_is_red(self):
         w = rules.classify_warnings([{"title": "03/10:00 EST Minor Flood Warning for the Maribyrnong River", "link": ""}])
-        self.assertEqual(rules.eval_flood(CALM_RIVER, w, TH)["level"], "red")
+        self.assertEqual(flow(warnings=w)["level"], "red")
+        self.assertEqual(flow([], warnings=w)["level"], "red")
 
     def test_cancelled_and_other_river_warnings_ignored(self):
         w = rules.classify_warnings([
             {"title": "Cancellation of Flood Warning for the Maribyrnong River", "link": ""},
             {"title": "Moderate Flood Warning for the Werribee River", "link": ""},
+            {"title": "Final Flood Watch for parts of Gippsland, North East, Central, South West and North West Victoria", "link": ""},
+            {"title": "03/10:00 EST Final Flood Warning for the Maribyrnong River", "link": ""},
         ])
-        self.assertEqual(rules.eval_flood(CALM_RIVER, w, TH)["level"], "green")
+        self.assertEqual(w["flood_watch"] + w["flood"], [])
+        self.assertEqual(flow(warnings=w)["level"], "green")
 
     def test_missing_forecast_is_unknown_not_green(self):
         r = session([None] * 3, morning="day")
@@ -134,9 +147,9 @@ class Single(unittest.TestCase):
         f = rules.eval_darkness(start, start.replace(hour=8), LAT, LON, TH, is_morning=True)
         self.assertFalse(f["active"])
 
-    def test_drivers_name_the_river(self):
-        r = session([hour()] * 3, morning="day", tides=RISING_TIDES, gauges=HIGH_RIVER)
-        self.assertEqual(r["drivers"], ["Flood"])
+    def test_drivers_name_the_flow(self):
+        r = session([hour()] * 3, morning="day", flow_rows=FAST_FLOW)
+        self.assertEqual(r["drivers"], ["Flow"])
 
 
     def test_thunderstorm_in_session_is_red(self):
@@ -187,14 +200,10 @@ class Combinations(unittest.TestCase):
         r = session([hour(rain=0.5)] * 3, morning="day")
         self.assertEqual(r["overall"], "green", r)
 
-    def test_outgoing_tide_plus_high_river_is_red(self):
-        r = session([hour()] * 3, morning="day", tides=EBB_TIDES, gauges=HIGH_RIVER)
-        self.assertEqual(r["factors"]["tide"]["level"], "red")
-        self.assertIn("Outgoing tide + high river", r["combinations"])
-
-    def test_high_river_with_incoming_tide_stays_amber(self):
-        r = session([hour()] * 3, morning="day", tides=RISING_TIDES, gauges=HIGH_RIVER)
+    def test_fast_flow_is_not_part_of_a_combination(self):
+        r = session([hour()] * 3, morning="day", flow_rows=FAST_FLOW)
         self.assertEqual(r["overall"], "amber")
+        self.assertEqual(r["combinations"], [])
 
 
 class Sun(unittest.TestCase):

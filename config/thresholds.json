@@ -37,15 +37,11 @@
     "_comment": "Boat lights needed before sunrise and after sunset (sun centre 0.833° below the horizon, the standard sunrise/sunset definition). Shown as a 'Lights' note, not a light. Only turns things red in combinations (dark + fog, dark + rain).",
     "dark_below_deg": -0.833
   },
-  "tide_ebb_m_per_hr": {
-    "_comment": "An outgoing tide alone is amber. It turns red only in combination with high river flow (see combinations).",
-    "amber": 0.1
-  },
-  "flood": {
-    "_comment": "Keilor gauge reading (Melbourne Water 230105A = BOM 'Maribyrnong River at Keilor'). Green under 0.6 m, yellow from 0.6 m, red from 1.0 m.",
-    "keilor_level_m": {
-      "amber": 0.6,
-      "red": 1.0
+  "flow": {
+    "_comment": "Estimated water speed at the course in km/h, river plus tide (scripts/flow_model.py). Also red for a BOM Maribyrnong Flood Warning, yellow for a Flood Watch (next 24 h), and yellow/red for an upstream gauge rising fast.",
+    "speed_kmh": {
+      "amber": 2,
+      "red": 4
     },
     "upstream_rise_m_per_hr": {
       "amber": 0.2,
@@ -77,14 +73,6 @@
         "wind"
       ],
       "why": "rough, wet conditions"
-    },
-    {
-      "label": "Outgoing tide + high river",
-      "factors": [
-        "tide",
-        "flood"
-      ],
-      "why": "strong current running out"
     }
   ],
   "_combinations_comment": "When every factor in a combination is active (amber, or dark for darkness), those lights become red. Add your own."

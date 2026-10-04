@@ -1,4 +1,4 @@
-"""Download hourly Melbourne Water history used to fit the river model.
+"""Download hourly Melbourne Water history used to fit the river and flow models.
 
 Run:  python3 scripts/fetch_history.py [first_year]
 Saves one JSON per series per year in history/ (not committed). Re-running only fetches missing years
@@ -20,6 +20,7 @@ SERIES = [
     ("230105A", "river-flow", "meanRiverFlow_m3"),
     ("230105A", "river-level", "meanRiverLevel"),
     ("230105A", "rain", "currentRainfallLevel"),
+    ("230106A", "river-level", "meanRiverLevel"),   # tidal gauge near Poyntons (flow model)
     ("230100A", "rain", "currentRainfallLevel"),
     ("230104A", "rain", "currentRainfallLevel"),
     ("587014", "rain", "currentRainfallLevel"),

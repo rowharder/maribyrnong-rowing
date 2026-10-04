@@ -155,8 +155,8 @@
           const r = x.rise_m_per_hr;
           const trend = r == null ? "–" : r > 0.01 ? `<span class="up">▲ ${r.toFixed(2)}</span>` : r < -0.01 ? `▼ ${Math.abs(r).toFixed(2)}` : "steady";
           return `<tr><td>${esc(x.name)}</td><td>${x.level_m.toFixed(2)} m</td><td>${trend}</td></tr>`;
-        }).join("")}</tbody></table><p class="note">The Flood light uses Keilor (same reading as BOM).</p>`
-      : "<p>No data.</p>") + riverForecastHtml(data.now.river_forecast);
+        }).join("")}</tbody></table>`
+      : "<p>No data.</p>") + flowHtml(data.now.flow);
 
     const t = data.now.tides || [];
     const ct = data.now.course_tide;
@@ -166,10 +166,7 @@
       tideHtml += `<dl class="kv">
           <dt>Now</dt><dd><strong>${esc(ct.state || "–")}</strong>${r != null ? ` · ${r < 0 ? "falling" : "rising"} ${Math.abs(r).toFixed(2)} m/hr` : ""}</dd>
           <dt>Level</dt><dd>${ct.level_m.toFixed(2)} m <span class="note-inline">at ${clockHM(ct.time.slice(11, 13), ct.time.slice(14, 16))}</span></dd></dl>
-        ${lineChart("tide", "Water level at the course: measured last 24 hours and predicted next 30 hours", [
-          { name: "Measured", cls: "tc-obs", pts: toPts(ct.observed), measured: true },
-          { name: "Forecast", cls: "tc-pred", pts: toPts(ct.predicted) },
-        ])}`;
+        ${heightChartHtml(data.now.flow)}`;
     }
     tideHtml += t.length
       ? `<dl class="kv">${t.map((x) => `<dt>${esc(x.type)}</dt><dd>${fmtTime(x.time)}</dd>`).join("")}</dl>
@@ -180,9 +177,9 @@
   }
 
   // ---- line chart: measured (solid) vs predicted (dashed), sessions shaded, hover readout.
-  // series: [{name, cls, pts:[[ms, m], ...], measured?}], lines: [{v, cls, label}]
+  // series: [{name, cls, pts:[[ms, value], ...], measured?}], lines: [{v, cls, label}]
   const charts = {};
-  function lineChart(id, label, series, lines = []) {
+  function lineChart(id, label, series, lines = [], { unit = "m", digits = 2 } = {}) {
     const W = 320, H = 130, P = { l: 30, r: 8, t: 8, b: 18 };
     series = series.filter((s) => s.pts.length);
     const all = series.flatMap((s) => s.pts);
@@ -206,7 +203,7 @@
     const span = y1 - y0, step = span > 3 ? 1 : span > 1 ? 0.5 : 0.25;
     for (let v = Math.ceil(y0 / step) * step; v <= y1; v += step) {
       if (Y(v) < P.t + 4) continue;
-      grid += `<line class="tc-grid" x1="${P.l}" x2="${W - P.r}" y1="${Y(v)}" y2="${Y(v)}"/><text class="tc-ax" x="${P.l - 4}" y="${Y(v) + 3}" text-anchor="end">${v.toFixed(2)}</text>`;
+      grid += `<line class="tc-grid" x1="${P.l}" x2="${W - P.r}" y1="${Y(v)}" y2="${Y(v)}"/><text class="tc-ax" x="${P.l - 4}" y="${Y(v) + 3}" text-anchor="end">${v.toFixed(step < 0.5 ? 2 : 1)}</text>`;
     }
     const hl = lines.map((l) => `<line class="tc-line ${l.cls}" x1="${P.l}" x2="${W - P.r}" y1="${Y(l.v)}" y2="${Y(l.v)}"/>
       <text class="tc-ax tc-line-label" x="${W - P.r - 2}" y="${Y(l.v) - 3}" text-anchor="end">${esc(l.label)}</text>`).join("");
@@ -225,7 +222,7 @@
       }
     }
 
-    charts[id] = { series, X, Y, x0, x1, P, W };
+    charts[id] = { series, X, Y, x0, x1, P, W, unit, digits };
     const keys = series.map((s) => `<span class="key ${s.cls}"></span>${esc(s.name)}`).join(" ");
     return `<figure class="line-chart" data-chart="${id}">
       <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}">
@@ -246,21 +243,20 @@
       const st = charts[fig.dataset.chart];
       if (!st) return;
       const svg = fig.querySelector("svg"), g = fig.querySelector(".tc-hover"), out = fig.querySelector(".tc-readout");
-      const { series, X, Y, x0, x1, P, W } = st;
-      const measured = series.find((s) => s.measured);
+      const { series, X, Y, x0, x1, P, W, unit, digits } = st;
       const move = (ev) => {
         const r = svg.getBoundingClientRect();
         const ms = x0 + ((((ev.clientX - r.left) / r.width) * W - P.l) / (W - P.l - P.r)) * (x1 - x0);
         const nearest = (pts) => pts.reduce((b, p) => (Math.abs(p[0] - ms) < Math.abs(b[0] - ms) ? p : b), pts[0]);
-        const useMeasured = measured && ms <= measured.pts[measured.pts.length - 1][0];
-        const shown = useMeasured ? [measured] : series.filter((s) => !s.measured);
+        // Every series with a point within 20 minutes of the pointer (measured before now, forecast after).
+        const shown = series.filter((s) => Math.abs(nearest(s.pts)[0] - ms) <= 12e5);
         const pts = shown.map((s) => nearest(s.pts));
         if (!pts.length) return;
         g.hidden = false;
         g.querySelector("line").setAttribute("x1", X(pts[0][0])); g.querySelector("line").setAttribute("x2", X(pts[0][0]));
         g.querySelector("circle").setAttribute("cx", X(pts[0][0])); g.querySelector("circle").setAttribute("cy", Y(pts[0][1]));
         out.textContent = `${fmtTime(new Date(pts[0][0]).toISOString())}: ` +
-          shown.map((s, i) => `${pts[i][1].toFixed(2)} m ${s.name.toLowerCase()}`).join(" · ");
+          shown.map((s, i) => `${pts[i][1].toFixed(digits)} ${unit} ${s.name.toLowerCase()}`).join(" · ");
       };
       const hit = svg.querySelector(".tc-hit");
       hit.addEventListener("pointermove", move);
@@ -271,21 +267,43 @@
 
   const toPts = (rows) => (rows || []).map((p) => [Date.parse(p.time), p.level_m]);
 
-  function riverForecastHtml(fc) {
-    if (!fc) return "";
-    const errHigh = fc.typical_error_high_river_m?.["+24h"];
-    return `<h3 class="sub-h">Keilor forecast <span class="badge">trial</span></h3>
-      ${lineChart("river", "Keilor river height: measured and forecast", [
-        { name: "Measured", cls: "tc-obs", pts: toPts(fc.observed), measured: true },
-        { name: "Forecast", cls: "tc-pred", pts: toPts(fc.with_rain) },
+  const speedPts = (rows) => (rows || []).map((p) => [Date.parse(p.time), p.speed_kmh]);
+  const kmh = (v) => `${Math.abs(v).toFixed(1)} km/h ${v >= 0 ? "out" : "in"}`;
+
+  function flowHtml(f) {
+    if (!f) return "";
+    const est = f.estimated || [];
+    const now = est.length ? est[est.length - 1] : f.forecast[0];
+    const g = f.geometry;
+    const rain = f.rain.past_72h_mm != null
+      ? ` Rain over the catchment: ${f.rain.past_72h_mm} mm last 3 days, ${f.rain.next_72h_mm != null ? `${f.rain.next_72h_mm} mm forecast next 3` : "<strong>rain forecast unavailable</strong>"}.` : "";
+    return `<h3 class="sub-h">Water speed at the course <span class="badge">estimate</span></h3>
+      ${now ? `<dl class="kv"><dt>Now</dt><dd><strong>${kmh(now.speed_kmh)}</strong>
+        <span class="note-inline">river ${now.river_kmh.toFixed(1)} ${now.tide_kmh >= 0 ? "+" : "−"} tide ${Math.abs(now.tide_kmh).toFixed(1)}</span></dd>
+        <dt>Keilor flow</dt><dd>${now.flow_m3s} m³/s</dd></dl>` : ""}
+      ${lineChart("flow", "Water speed at the course in km/h: estimated last day, forecast ahead; above zero is downstream", [
+        { name: "Estimated", cls: "tc-obs", pts: speedPts(est), measured: true },
+        { name: "Forecast", cls: "tc-pred", pts: speedPts(f.forecast) },
       ], [
-        { v: fc.thresholds.red, cls: "tc-red", label: `red ${fc.thresholds.red} m` },
-        { v: fc.thresholds.yellow, cls: "tc-amber", label: `yellow ${fc.thresholds.yellow} m` },
-      ])}
-      <p class="note">Our forecast from Keilor's level and catchment rain (${fc.rain_past_72h_mm} mm last 3 days, ${fc.rain_next_72h_mm != null
-          ? `${fc.rain_next_72h_mm} mm forecast next 3` : "<strong>rain forecast unavailable</strong>"}).${
-        errHigh != null ? ` Usually within ${Math.round(errHigh * 100)} cm a day ahead when the river is high, but can miss sudden rises.` : ""}
-        ${fc.use_for_lights ? "Sets the Flood light for sessions 3+ hours away." : ""}</p>`;
+        { v: f.thresholds.red, cls: "tc-red", label: `red ${f.thresholds.red} km/h` },
+        { v: f.thresholds.yellow, cls: "tc-amber", label: `yellow ${f.thresholds.yellow} km/h` },
+        { v: 0, cls: "tc-zero", label: "" },
+      ], { unit: "km/h", digits: 1 })}
+      <p class="note">Above zero = going out (downstream). River flow from Keilor (measured, then our rain forecast) plus the tide
+        filling or emptying the river upstream. Assumes the river is ${g.width_m} m wide and ${g.depth_m} m deep at the course –
+        a rough estimate, so treat the numbers as a guide.${rain} ${(f.notes || []).map(esc).join(" ")}</p>`;
+  }
+
+  function heightChartHtml(f) {
+    if (!f) return "";
+    const lv = (rows, key) => (rows || []).filter((p) => p[key] != null).map((p) => [Date.parse(p.time), p[key]]);
+    const until = Date.parse(f.issued) + 36 * 36e5;  // keep the tide readable: next day and a half
+    const ahead = (f.forecast || []).filter((p) => Date.parse(p.time) <= until);
+    return lineChart("height", "Water height at Poyntons (measured and forecast) and at the river mouth", [
+      { name: "Poyntons", cls: "tc-obs", pts: toPts(f.observed_levels), measured: true },
+      { name: "Poyntons forecast", cls: "tc-pred", pts: lv(ahead, "poyntons_m") },
+      { name: "Mouth", cls: "tc-mouth", pts: toPts(f.mouth_past).concat(lv(ahead, "mouth_m")) },
+    ]) + `<p class="note">Mouth = BOM Williamstown tide, lined up with the Poyntons gauge. Poyntons sits above it by however much the river pushes the water up.</p>`;
   }
 
   function renderSources() {

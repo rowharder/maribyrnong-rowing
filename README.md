@@ -13,7 +13,7 @@ Guide only. The coach or captain makes the call.
   - weekday mornings 05:30–07:00
   - weekend mornings 06:30–08:00
   - evenings 18:00–20:00
-- One **row per factor**: Wind, Temperature, Rain, Lightning, Fog, Tide, Flood.
+- One **row per factor**: Wind, Temperature, Rain, Lightning, Fog, Flow.
 - A **Lights** note under the session time ("Lights to 06:24" / "Lights from 19:54") when any part of the
   session is before sunrise or after sunset. It's information, not a light.
 - An **Overall** light per column (the worst factor), with the factors that set it listed underneath.
@@ -21,8 +21,8 @@ Guide only. The coach or captain makes the call.
 - A **Right now** section:
   - Essendon Airport weather
   - river gauges
-  - Keilor level forecast chart
-  - tide at the course (measured and predicted)
+  - water speed at the course (estimated last day, forecast ahead)
+  - tide at the course: water height at Poyntons (measured and forecast) against the river mouth
 - Colours: green = Go, yellow = Caution, red = No go, grey = No data.
   - If the whole page is more than 8 hours old, every light goes grey.
 
@@ -37,8 +37,7 @@ All numbers are in `config/thresholds.json`. In that file, `amber` means yellow.
 | Rain | 2 mm/hr or more | – (see combinations) |
 | Lightning | BOM day forecast mentions thunder, lightning or hail, or unstable air with rain | thunderstorm forecast during the session, or a BOM Severe Thunderstorm Warning (Central) |
 | Fog | visibility under 1,600 m, or fog forecast | visibility under 500 m |
-| Tide | outgoing, falling 0.1 m/hr or faster (BOM Williamstown, in step with the course) | – (see combinations) |
-| Flood | Keilor 0.6 m or more, BOM Flood Watch (sessions in the next 24 h), or an upstream gauge rising 0.2 m/hr or faster | Keilor 1.0 m or more, BOM Maribyrnong Flood Warning, or an upstream gauge rising 0.5 m/hr or faster |
+| Flow | water speed 2 km/h or more (either way), BOM Flood Watch (sessions in the next 24 h), or an upstream gauge rising 0.2 m/hr or faster | 4 km/h or more, BOM Maribyrnong Flood Warning, or an upstream gauge rising 0.5 m/hr or faster |
 
 **Combinations that are red** (in `combinations`). Each needs all of its factors at yellow or worse
 (darkness counts when lights are needed):
@@ -46,43 +45,75 @@ All numbers are in `config/thresholds.json`. In that file, `amber` means yellow.
 - Dark + fog
 - Dark + rain (rain counts here from 0.3 mm/hr)
 - Rain + wind
-- Outgoing tide + high river
 
-**Flood uses the Keilor gauge reading** (Melbourne Water 230105A), which is the same figure as BOM's
-"Maribyrnong River at Keilor", so it can be checked on BOM's river heights page (IDV60201). For sessions
-more than 3 hours away, the Flood light uses the Keilor forecast (below).
+Flow already includes the tide, so there is no separate Tide light.
 
 Displayed numbers are rounded, and the colour is judged on the rounded number, so they always agree.
 
-## Keilor forecast (trial)
+## Flow: water speed at the course (estimate)
 
-Forecasts Keilor's height for the next 3 days from two inputs only:
+Flow is the fastest the water is expected to move past Poyntons during the session, in km/h. It comes from a
+volume balance (`scripts/flow_model.py`):
+
+```
+water past the course = Keilor's river flow (2 h earlier) + the tide filling or emptying the river upstream
+speed = that ÷ (river width × depth at the course)
+```
+
+- **River flow:** Keilor's flow (Melbourne Water 230105A). It's measured now, then forecast for 3 days from
+  catchment rain (see below). Past the 3-day forecast, the flow is held at its last value.
+- **Tide:** the BOM Williamstown prediction. Its rate of rise or fall is multiplied by the water surface
+  upstream of the course. Williamstown sits at the mouth and runs in step with the course gauge.
+- **River shape** (`flow` in `config/sources.json`):
+  - width 52 m, measured on OpenStreetMap
+  - water surface upstream to near Solomon's Ford: 360,000 m², measured on OpenStreetMap
+  - depth 2.5 m: **a guess**
+
+Speed scales with 1 ÷ (width × depth), so the km/h figures are only as good as these numbers. A rough
+check on 5 Oct 2026: about 0.2 km/h was seen going out at 7am, and the model said about 0.4. That suggests
+the river may be deeper than 2.5 m. If anyone measures the depth, put it in `depth_m`.
+
+Why not use the slope of the water between Poyntons and the mouth? Over the 9 km of river below the
+course the slope is tiny. In Jan 2024, Keilor ran at 84–120 m³/s and Poyntons rose only 0.1–0.3 m. That's
+no more than normal weather swings, so the slope only shows up in big floods.
+
+The **height chart** shows Poyntons against the mouth (Williamstown, on the same datum). The gap between
+them is how far river flow lifts the water at Poyntons. That's fitted from history
+(`config/flow_model.json`): about 0.1 m at 30 m³/s, 0.25 m at 60 m³/s and 2.7 m at 500 m³/s.
+
+Checked against history using measured data:
+
+| Event | Fastest, going out |
+|---|---|
+| Oct 2022 flood | about 8 km/h |
+| Jan 2024 flood | about 3 km/h |
+| Normal day | under 1 km/h |
+
+### Keilor flow forecast
+
+Forecasts Keilor's flow for the next 3 days from two inputs only:
 
 - **Keilor's current flow**
 - **Catchment rain**: Melbourne Water rain gauges at Keilor, Darraweit Guim, Sunbury and Bulla, plus
   Open-Meteo forecast rain over the catchment
 
-The model was learned from 2018–2024 hourly records, after removing sensor glitches.
-
-Tested on 2025–26 data it hadn't seen, a day ahead it was typically:
-
-- within about 3 cm in normal conditions
-- within about 24 cm when the river is high
+The model was learned from 2018–2024 hourly records, after removing sensor glitches. Tested on 2025–26
+data it hadn't seen, a day ahead it was typically within about 3 cm of Keilor's level in normal
+conditions, and within about 24 cm when the river is high.
 
 It handles falling rivers well, but **misses sudden rises**. It can't see a pulse of water already coming
-down from upstream, and it under-forecasts big floods (Oct 2022, Jan 2024). Upstream gauges were left out
-of the forecast on purpose, to keep it simple.
+down from upstream, and it under-forecasts big floods (Oct 2022, Jan 2024). That's why Flow also goes
+yellow or red when an upstream gauge rises fast.
 
-To switch the forecast off for the lights, set `river_forecast.use_for_lights` to `false` in `config/sources.json`.
-
-To refit the model (for example once a year, or after a big flood):
+To refit the models (for example once a year, or after a big flood):
 
 ```
 python3 scripts/fetch_history.py        # downloads history/ (not committed)
 python3 scripts/fit_river_model.py      # several minutes; writes config/river_model.json
+python3 scripts/fit_flow_model.py       # writes config/flow_model.json; prints flood hindcasts
 ```
 
-Check the printed test results before uploading a new model.
+Check the printed results before uploading new models.
 
 ## How it runs
 
@@ -124,12 +155,14 @@ If a source fails, only its lights go grey. Every download is retried once.
 | File | What it does |
 |---|---|
 | `config/thresholds.json` | All rule numbers and combinations |
-| `config/sources.json` | Location, session times, data URLs, gauge IDs, row "check" links, forecast settings |
-| `config/river_model.json` | Fitted Keilor forecast (made by `fit_river_model.py`) |
+| `config/sources.json` | Location, session times, data URLs, gauge IDs, row "check" links, forecast settings, river shape |
+| `config/river_model.json` | Fitted Keilor flow forecast (made by `fit_river_model.py`) |
+| `config/flow_model.json` | Fitted Poyntons water-level setup (made by `fit_flow_model.py`) |
 | `scripts/build.py` | Fetches everything, applies rules, writes `site/data/latest.json` |
 | `scripts/sources.py` | One fetch function per data source |
 | `scripts/rules.py` | The traffic-light rules (no network; unit tested) |
-| `scripts/river_model.py` | Keilor forecast maths |
+| `scripts/river_model.py` | Keilor flow forecast maths |
+| `scripts/flow_model.py` | Water speed and Poyntons height maths |
 | `site/` | The web page (`index.html`, `app.js`, `styles.css`, `config.js`) |
 | `tests/` | `python3 -m unittest discover tests` |
 
