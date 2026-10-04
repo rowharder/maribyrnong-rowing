@@ -92,6 +92,8 @@ Check the printed test results before uploading a new model.
   in cron-job.org only (not in this repo), has no expiry, and can be revoked under GitHub → Settings →
   Developer settings → Fine-grained tokens. To replace it, make a new token with the same settings and paste
   it into the cron-job.org job's `Authorization: Bearer …` header.
+  **Before March 2028:** GitHub retires API version `2022-11-28` (sent in the job's `X-GitHub-Api-Version`
+  header). Change it to the current version listed at https://docs.github.com/en/rest/about-the-rest-api/api-versions.
 - **GitHub Actions** (`.github/workflows/update.yml`) does the work. It also has its own hourly schedule
   (:23) as a backup, but GitHub skips most of those. It runs on every push too, and on demand from the
   Actions tab via "Update conditions" → "Run workflow". Each run:
