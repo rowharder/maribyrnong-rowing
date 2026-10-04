@@ -99,6 +99,13 @@ section { margin-block: 18px; }
 }
 .light-lg { width: 46px; height: 46px; font-size: 1.25rem; box-shadow: 0 0 0 3px var(--surface), 0 0 0 4px var(--border); }
 .light-sm { width: 18px; height: 18px; font-size: .62rem; }
+/* Flow: a coloured arrow (which way the water runs) instead of a ticked circle */
+.light.arrow { font-size: 1.7rem; font-weight: 900; }
+.light-sm.arrow { font-size: 1.1rem; }
+.light.arrow.green { background: none; color: var(--green); }
+.light.arrow.amber { background: none; color: var(--amber); }
+.light.arrow.red { background: none; color: var(--red); }
+.light.arrow.unknown { background: none; color: var(--unknown); }
 .light.green { background: var(--green); color: var(--on-green); }
 .light.amber { background: var(--amber); color: var(--on-amber); }
 .light.red { background: var(--red); color: var(--on-red); }

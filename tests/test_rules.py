@@ -94,6 +94,9 @@ class Single(unittest.TestCase):
         self.assertEqual(f["level"], "amber")
         self.assertEqual(f["value"], "2.2 km/h")
         self.assertIn("2.2 km/h in", f["reasons"][0])
+        self.assertEqual(f["direction"], "in")
+        self.assertEqual(flow([speed(0.4)])["direction"], "out")
+        self.assertIsNone(flow([])["direction"])
 
     def test_flow_reason_splits_river_and_tide(self):
         f = flow([speed(1.3, river=0.9)])

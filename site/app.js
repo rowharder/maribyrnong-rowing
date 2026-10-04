@@ -16,8 +16,12 @@
   const clock = (ms) => { const c = clockParts(ms); return `${c.h}${c.m !== "00" ? ":" + c.m : ""}${c.ap}`; };
   const clockHM = (hh, mm) => `${+hh % 12 || 12}${mm !== "00" ? ":" + mm : ""}${+hh < 12 ? "am" : "pm"}`;
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const light = (level, size = "") =>
-    `<span class="light ${size} ${level}" role="img" aria-label="${LABEL[level]}">${ICON[level]}</span>`;
+  // Flow shows which way the water runs instead of a tick: → upstream (in), ← downstream (out).
+  const ARROW = { in: ["→", "flowing upstream"], out: ["←", "flowing downstream"] };
+  const light = (level, size = "", direction = null) => {
+    const a = ARROW[direction];
+    return `<span class="light ${size} ${level}${a ? " arrow" : ""}" role="img" aria-label="${LABEL[level]}${a ? `, ${a[1]}` : ""}">${a ? a[0] : ICON[level]}</span>`;
+  };
 
   let data = null;
   let selected = 0;
@@ -97,7 +101,7 @@
         const x = c.factors[f.id];
         const l = lv(x.level);
         html += `<td class="cell ${colClass(i)}${sel(i)}" data-col="${i}" title="${esc(x.reasons.join(" • "))}">
-          ${light(l)}<span class="val">${esc(x.value)}</span>${x.combo ? `<span class="combo-tag">${esc(x.combo)}</span>` : ""}</td>`;
+          ${light(l, "", x.direction)}<span class="val">${esc(x.value)}</span>${x.combo ? `<span class="combo-tag">${esc(x.combo)}</span>` : ""}</td>`;
       });
       html += "</tr>";
     });
@@ -124,7 +128,7 @@
     html += `<ul class="factor-list">`;
     data.factors.forEach((f) => {
       const x = c.factors[f.id];
-      html += `<li>${light(stale ? "unknown" : x.level, "light-sm")}<span class="name">${esc(f.label)}</span>
+      html += `<li>${light(stale ? "unknown" : x.level, "light-sm", x.direction)}<span class="name">${esc(f.label)}</span>
         <span class="why">${x.reasons.map((r) => `<div>${esc(r)}</div>`).join("")}${(f.links || []).length
           ? `<div class="check">Check: ${f.links.map((l) => `<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)}</a>`).join(" · ")}</div>` : ""}</span></li>`;
     });

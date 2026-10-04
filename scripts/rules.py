@@ -276,12 +276,13 @@ def eval_flow(rows, gauges, warnings, th, watch_applies=True, note=""):
     the next 24 hours), and yellow/red for an upstream gauge rising fast (a pulse the forecast can't see)."""
     ft = th["flow"]
     band = ft["speed_kmh"]
-    lv, reasons, value = GREEN, [], "?"
+    lv, reasons, value, direction = GREEN, [], "?", None
     if rows:
         fast = max(rows, key=lambda r: abs(r["speed_kmh"]))
         speed = round(abs(fast["speed_kmh"]), 1)  # judge on the same rounded number we display
         lv = _band(speed, band["amber"], band["red"])
         value = f"{speed:.1f} km/h"
+        direction = "out" if fast["speed_kmh"] >= 0 else "in"
         reasons.append(f"Up to {_kmh(fast['speed_kmh'])} (river {fast['river_kmh']:.1f} + tide {fast['tide_kmh']:+.1f}; "
                        f"yellow from {band['amber']}, red from {band['red']})")
         reasons.append(f"Keilor flow {fast['flow_m3s']:.0f} m³/s{f'. {note}' if note else ''}")
@@ -302,7 +303,9 @@ def eval_flow(rows, gauges, warnings, th, watch_applies=True, note=""):
     if not rows and not warnings["flood"]:
         lv = worst(lv, UNKNOWN)
         reasons.append("No water speed estimate (Keilor flow or tide missing) – check the river yourself")
-    return factor(lv, value, *reasons)
+    f = factor(lv, value, *reasons)
+    f["direction"] = direction  # "out" (downstream), "in" (upstream) or None; drawn as an arrow
+    return f
 
 
 # ---------------------------------------------------------------- session
