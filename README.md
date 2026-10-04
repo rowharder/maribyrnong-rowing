@@ -42,7 +42,7 @@ All numbers are in `config/thresholds.json`. In that file, `amber` means yellow.
 **Combinations that are red** (in `combinations`). Each needs all of its factors at yellow or worse
 (darkness counts when lights are needed):
 
-- Dark + fog
+- Dark + fog (visibility under 1,000 m; fog forecast alone, or 1,000–1,600 m, stays yellow)
 - Dark + rain (rain counts here from 0.3 mm/hr)
 - Rain + wind
 

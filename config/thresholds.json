@@ -27,8 +27,10 @@
     ]
   },
   "visibility_m": {
+    "_comment": "Yellow under 'amber', red under 'red'. In the dark, red under 'dark_red' (the Dark + fog combination).",
     "amber": 1600,
-    "red": 500
+    "red": 500,
+    "dark_red": 1000
   },
   "fog_keywords": [
     "fog"
@@ -56,7 +58,10 @@
         "darkness",
         "visibility"
       ],
-      "why": "can't see or be seen"
+      "why": "visibility under 1,000 m in the dark – can't see or be seen",
+      "requires": {
+        "visibility": "thick"
+      }
     },
     {
       "label": "Dark + rain",

@@ -178,8 +178,15 @@ class Single(unittest.TestCase):
 
 
 class Combinations(unittest.TestCase):
+    def test_dark_plus_thin_fog_stays_amber(self):
+        r = session([hour(visibility=1040, code=45)] * 3, morning=True)
+        self.assertEqual(r["factors"]["visibility"]["level"], "amber")
+        self.assertNotIn("Dark + fog", r["combinations"])
+        r = session([hour(code=45)] * 3, morning=True)  # fog forecast, visibility still good
+        self.assertNotIn("Dark + fog", r["combinations"])
+
     def test_dark_plus_fog_is_red(self):
-        r = session([hour(visibility=1500, code=45)] * 3, morning=True)
+        r = session([hour(visibility=990, code=45)] * 3, morning=True)
         self.assertEqual(r["overall"], "red")
         self.assertIn("Dark + fog", r["combinations"])
         self.assertEqual(r["factors"]["visibility"]["level"], "red")

@@ -161,7 +161,9 @@ def eval_visibility(hours, day_text, is_morning, th):
     if not reasons:
         reasons.append(f"Visibility {_vis_text(v)}" if v < 10000 else "Visibility 10 km+")
     value = (_vis_text(v) if v < 10000 else "Good") if v is not None else "Fog"
-    return factor(lv, value, *reasons)
+    f = factor(lv, value, *reasons)
+    f["thick"] = v is not None and v < vt["dark_red"]  # thick enough for the dark + fog combination
+    return f
 
 
 # ---------------------------------------------------------------- darkness
@@ -314,13 +316,16 @@ def apply_combinations(factors, combos):
     """Raise factors to red when dangerous conditions occur together.
 
     Each combo lists groups like ["darkness", "rain"] or ["rain", "wind|lightning"];
-    '|' means any of those factors satisfies that slot.
+    '|' means any of those factors satisfies that slot. "requires": {"visibility": "thick"} means that
+    factor only counts when it also carries that flag (e.g. visibility under 1,000 m).
     """
     hits = []
     for combo in combos:
+        need = combo.get("requires", {})
+        counts = lambda k: k in factors and is_active(factors[k]) and (k not in need or factors[k].get(need[k]))
         matched = []
         for slot in combo["factors"]:
-            found = [k for k in slot.split("|") if k in factors and is_active(factors[k])]
+            found = [k for k in slot.split("|") if counts(k)]
             if not found:
                 break
             matched += found
