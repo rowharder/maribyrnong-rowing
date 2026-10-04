@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
+      url: ${{ steps.deploy1.outputs.page_url || steps.deploy2.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -35,7 +35,7 @@ jobs:
         run: python -m unittest discover tests
 
       - name: Fetch data and build
-        run: python scripts/build.py
+        run: python scripts/build.py || (sleep 20 && python scripts/build.py)
 
       # GitHub pauses scheduled workflows after 60 days without commits.
       # A tiny monthly commit keeps the dashboard updating.
@@ -60,5 +60,16 @@ jobs:
         with:
           path: site
 
-      - id: deploy
+      # Publishing occasionally times out on GitHub's side ("Failed to get ID Token").
+      # Try once more before giving up.
+      - id: deploy1
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+
+      - name: Wait before retrying publish
+        if: steps.deploy1.outcome == 'failure'
+        run: sleep 30
+
+      - id: deploy2
+        if: steps.deploy1.outcome == 'failure'
         uses: actions/deploy-pages@v4
