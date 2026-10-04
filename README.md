@@ -86,13 +86,18 @@ Check the printed test results before uploading a new model.
 
 ## How it runs
 
-- **GitHub Actions** (`.github/workflows/update.yml`) runs the update every hour at :23. It also runs on
-  every push, and from the Actions tab via "Update conditions" → "Run workflow". Each run:
+- **cron-job.org** triggers the update **every 3 hours at :23** (1:23, 4:23, 7:23, 10:23 am and pm,
+  Melbourne time), so there's a fresh update about an hour before each session. It calls GitHub's
+  "run workflow" API using a fine-grained token that can only run Actions on this repo. The token is stored
+  in cron-job.org only (not in this repo), has no expiry, and can be revoked under GitHub → Settings →
+  Developer settings → Fine-grained tokens. To replace it, make a new token with the same settings and paste
+  it into the cron-job.org job's `Authorization: Bearer …` header.
+- **GitHub Actions** (`.github/workflows/update.yml`) does the work. It also has its own hourly schedule
+  (:23) as a backup, but GitHub skips most of those. It runs on every push too, and on demand from the
+  Actions tab via "Update conditions" → "Run workflow". Each run:
   1. runs the tests,
   2. runs `scripts/build.py` to fetch all the data, apply the rules and write `site/data/latest.json`,
-  3. publishes `site/` to GitHub Pages.
-- GitHub sometimes skips scheduled runs. Running hourly at :23 (off the busy hour and half-hour) keeps
-  gaps well under 6 hours. If skipped runs become a problem, use an external trigger such as cron-job.org.
+  3. publishes `site/` to GitHub Pages (retrying once if GitHub glitches).
 - A small monthly commit stops GitHub pausing the schedule on an inactive repository.
 - Each publish gives the page's code files a new version number, so browsers fetch the new code. Pages left
   open reload themselves when the code changes.
