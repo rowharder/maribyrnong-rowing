@@ -52,9 +52,9 @@ class Single(unittest.TestCase):
         self.assertEqual(r["overall"], "green", r)
 
     def test_wind_bands(self):
-        self.assertEqual(rules.eval_wind([hour(wind=9)], TH)["level"], "green")
-        self.assertEqual(rules.eval_wind([hour(wind=12)], TH)["level"], "amber")
-        self.assertEqual(rules.eval_wind([hour(wind=16)], TH)["level"], "red")
+        self.assertEqual(rules.eval_wind([hour(wind=17)], TH)["level"], "green")
+        self.assertEqual(rules.eval_wind([hour(wind=22)], TH)["level"], "amber")
+        self.assertEqual(rules.eval_wind([hour(wind=30)], TH)["level"], "red")
 
     def test_visibility_bands(self):
         lv = lambda m: rules.eval_visibility([hour(visibility=m)], "", False, TH)
@@ -195,14 +195,24 @@ class Combinations(unittest.TestCase):
         self.assertEqual(r["factors"]["visibility"]["level"], "red")
         self.assertEqual(r["drivers"], ["Dark + fog"])
 
-    def test_dark_plus_light_rain_is_red(self):
+    def test_dark_plus_rain_is_no_longer_red(self):
         r = session([hour(rain=0.5)] * 3, morning=True)
-        self.assertIn("Dark + rain", r["combinations"])
-        self.assertEqual(r["overall"], "red")
-        self.assertEqual(r["factors"]["rain"]["level"], "red")
+        self.assertEqual(r["combinations"], [])
+        self.assertEqual(r["overall"], "green", r)
+
+    def test_three_yellows_make_overall_red(self):
+        yellow = dict(temp=8, rain=2.5)
+        r = session([hour(**yellow)] * 3, morning="day", flow_rows=FAST_FLOW)
+        levels = {k: f["level"] for k, f in r["factors"].items()}
+        self.assertEqual(r["overall"], "red", levels)
+        self.assertEqual(r["drivers"][0], "3 yellows")
+
+    def test_two_yellows_stay_yellow(self):
+        r = session([hour(rain=2.5)] * 3, morning="day", flow_rows=FAST_FLOW)
+        self.assertEqual(r["overall"], "amber", r)
 
     def test_rain_plus_wind_is_red(self):
-        r = session([hour(rain=0.5, wind=12)] * 3, morning="day")
+        r = session([hour(rain=0.5, wind=22)] * 3, morning="day")
         self.assertIn("Rain + wind", r["combinations"])
         self.assertEqual(r["factors"]["wind"]["level"], "red")
 

@@ -146,8 +146,8 @@
     $("obs").innerHTML = o
       ? `<h3>Weather – ${esc(o.station)}</h3><dl class="kv">
           <dt>Temperature</dt><dd>${o.temp ?? "–"}°C</dd>
-          <dt>Wind</dt><dd>${esc(o.wind_dir || "")} ${o.wind_kn ?? "–"} kn</dd>
-          <dt>Gusts</dt><dd>${o.gust_kn ?? "–"} kn</dd>
+          <dt>Wind</dt><dd>${esc(o.wind_dir || "")} ${o.wind_kmh ?? "–"} km/h</dd>
+          <dt>Gusts</dt><dd>${o.gust_kmh ?? "–"} km/h</dd>
           <dt>Rain since 9am</dt><dd>${o.rain_since_9am ?? "–"} mm</dd>
           <dt>Visibility</dt><dd>${o.visibility_km ?? "–"} km</dd></dl>
          <p class="note">Observed ${clockHM(o.time.slice(8, 10), o.time.slice(10, 12))}</p>`

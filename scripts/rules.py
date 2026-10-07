@@ -60,16 +60,16 @@ def eval_wind(hours, th, warnings=None, within_warning_window=False):
     if not vals:
         return factor(UNKNOWN, "?", "No wind forecast available")
     w = max(vals)
-    lv = _band(w, th["wind_kn"]["amber"], th["wind_kn"]["red"])
+    lv = _band(w, th["wind_kmh"]["amber"], th["wind_kmh"]["red"])
     gusts = [h["gust"] for h in hours if h and h.get("gust") is not None]
-    gust_txt = f"Gusts to {max(gusts):.0f} kn" if gusts else ""
-    reasons = [f"Wind up to {w:.0f} kn (yellow from {th['wind_kn']['amber']}, red from {th['wind_kn']['red']})",
+    gust_txt = f"Gusts to {max(gusts):.0f} km/h" if gusts else ""
+    reasons = [f"Wind up to {w:.0f} km/h (yellow from {th['wind_kmh']['amber']}, red from {th['wind_kmh']['red']})",
                gust_txt]
     if warnings and within_warning_window:
         for warn in warnings["severe_weather"]:
             lv = RED
             reasons.insert(0, f"BOM warning: {warning_title(warn)}")
-    return factor(lv, f"{w:.0f} kn", *reasons)
+    return factor(lv, f"{w:.0f} km/h", *reasons)
 
 
 def eval_temp(hours, th):
@@ -101,7 +101,7 @@ def eval_rain(hours, th):
     else:
         f = factor(lv, f"{r:.1f} mm", f"Rain up to {r:.1f} mm/hr (yellow from {th['rain_mm_per_hr']['amber']})")
     if r >= th["rain_mm_per_hr"]["combo_min"]:
-        f["active"] = True  # enough rain to matter in combinations (dark + rain, rain + wind)
+        f["active"] = True  # enough rain to matter in combinations (rain + wind)
     return f
 
 
@@ -201,7 +201,7 @@ def sun_crossing(day_start: datetime, lat, lon, angle, rising):
 
 def eval_darkness(start, end, lat, lon, th, is_morning):
     """When boat lights are needed: any part of the session before sunrise or after sunset.
-    Not a traffic light on its own - it only matters in combinations (dark + fog, dark + rain).
+    Not a traffic light on its own - it only matters in combinations (dark + fog).
     Returns a factor flagged `active` when dark, plus a `lights` note for the page."""
     day0 = start.replace(hour=0, minute=0, second=0, microsecond=0)
     angle = th["darkness"]["dark_below_deg"]
@@ -351,12 +351,23 @@ def evaluate_session(*, start, end, is_morning, hours, day_text, warnings, flow,
         "visibility": eval_visibility(hours, day_text, is_morning, th),
         "flow": copy.deepcopy(flow),
     }
-    # Darkness isn't a light of its own, but takes part in combinations (dark + fog, dark + rain).
+    # Darkness isn't a light of its own, but takes part in combinations (dark + fog).
     dark = eval_darkness(start, end, lat, lon, th, is_morning)
     combos = apply_combinations({**factors, "darkness": dark}, th["combinations"])
     overall = worst(*(f["level"] for f in factors.values()))
+    many = many_yellows(factors, th["yellow_count_red"])
+    if many:
+        overall = RED
     return {"overall": overall, "factors": factors, "combinations": combos,
-            "drivers": drivers(factors, overall), "lights": dark["lights"]}
+            "drivers": [f"{len(many)} yellows"] + many if many else drivers(factors, overall),
+            "lights": dark["lights"]}
+
+
+def many_yellows(factors, rule):
+    """Names of the yellow lights if enough of the listed factors are yellow at once, else []."""
+    labels = dict(FACTORS)
+    yellow = [labels[k] for k in rule["factors"] if factors[k]["level"] == AMBER]
+    return yellow if len(yellow) >= rule["min"] else []
 
 
 def drivers(factors, overall):

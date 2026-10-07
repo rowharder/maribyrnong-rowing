@@ -1,8 +1,8 @@
 {
   "_comment": "Rule numbers for the traffic lights. 'amber' means yellow (Caution). At or above 'red' = red; at or above 'amber' = yellow.",
-  "wind_kn": {
-    "amber": 10,
-    "red": 15
+  "wind_kmh": {
+    "amber": 18,
+    "red": 28
   },
   "heat_c": {
     "amber": 30,
@@ -36,7 +36,7 @@
     "fog"
   ],
   "darkness": {
-    "_comment": "Boat lights needed before sunrise and after sunset (sun centre 0.833° below the horizon, the standard sunrise/sunset definition). Shown as a 'Lights' note, not a light. Only turns things red in combinations (dark + fog, dark + rain).",
+    "_comment": "Boat lights needed before sunrise and after sunset (sun centre 0.833° below the horizon, the standard sunrise/sunset definition). Shown as a 'Lights' note, not a light. Only turns things red in combinations (dark + fog).",
     "dark_below_deg": -0.833
   },
   "flow": {
@@ -51,6 +51,11 @@
     }
   },
   "stale_after_hours": 8,
+  "yellow_count_red": {
+    "_comment": "Overall goes red when this many of the listed lights are yellow at once.",
+    "min": 3,
+    "factors": ["wind", "temp", "rain", "visibility", "flow"]
+  },
   "combinations": [
     {
       "label": "Dark + fog",
@@ -62,14 +67,6 @@
       "requires": {
         "visibility": "thick"
       }
-    },
-    {
-      "label": "Dark + rain",
-      "factors": [
-        "darkness",
-        "rain"
-      ],
-      "why": "poor visibility in the dark"
     },
     {
       "label": "Rain + wind",

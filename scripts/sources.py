@@ -40,7 +40,7 @@ def fetch_forecast(src):
         "longitude": loc["longitude"],
         "hourly": ",".join(fields),
         "timezone": loc["timezone"],
-        "wind_speed_unit": "kn",
+        "wind_speed_unit": "kmh",
         "forecast_days": src["days_to_show"] + 1,
     }))
     hourly = raw["hourly"]
@@ -85,8 +85,8 @@ def fetch_bom_observations(src):
         "station": src["bom_obs_name"],
         "time": latest["local_date_time_full"],
         "temp": latest["air_temp"],
-        "wind_kn": latest.get("wind_spd_kt"),
-        "gust_kn": latest.get("gust_kt"),
+        "wind_kmh": latest.get("wind_spd_kmh"),
+        "gust_kmh": latest.get("gust_kmh"),
         "wind_dir": latest.get("wind_dir"),
         "rain_since_9am": latest.get("rain_trace"),
         "visibility_km": latest.get("vis_km"),
