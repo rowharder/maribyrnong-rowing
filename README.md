@@ -14,6 +14,9 @@ Guide only. The coach or captain makes the call.
   - weekend mornings 06:30–08:00
   - evenings 18:00–20:00
 - One **row per factor**: Wind, Temperature, Rain, Lightning, Fog, Flow.
+  - Wind and Flow show a coloured arrow instead of a tick.
+  - Wind's arrow points the way the wind blows, with north up (↑ is a southerly).
+  - Flow's arrow shows which way the water runs (→ upstream, ← downstream).
 - A **Lights** note under the session time ("Lights to 06:24" / "Lights from 19:54") when any part of the
   session is before sunrise or after sunset. It's information, not a light.
 - An **Overall** light per column (the worst factor), with the factors that set it listed underneath.
@@ -58,12 +61,15 @@ Flow is the fastest the water is expected to move past Poyntons during the sessi
 volume balance (`scripts/flow_model.py`):
 
 ```
-water past the course = Keilor's river flow (2 h earlier) + the tide filling or emptying the river upstream
+water past the course = Keilor's river flow (2 h earlier) × 1.1 + the tide filling or emptying the river upstream
 speed = that ÷ (river width × depth at the course)
 ```
 
 - **River flow:** Keilor's flow (Melbourne Water 230105A). It's measured now, then forecast for 3 days from
   catchment rain (see below). Past the 3-day forecast, the flow is held at its last value.
+- **Creeks below Keilor** (Taylors, Steele, Five Mile and urban drains) aren't measured. Keilor's flow is
+  multiplied by `ungauged_factor` (1.1) to allow for them. They drain roughly 5–10% of the catchment, but
+  they're urban, so they run off more. It's a rough figure.
 - **Tide:** the BOM Williamstown prediction. Its rate of rise or fall is multiplied by the water surface
   upstream of the course. Williamstown sits at the mouth and runs in step with the course gauge.
 - **River shape** (`flow` in `config/sources.json`):
@@ -71,9 +77,35 @@ speed = that ÷ (river width × depth at the course)
   - water surface upstream to near Solomon's Ford: 360,000 m², measured on OpenStreetMap
   - depth 2.5 m: **a guess**
 
-Speed scales with 1 ÷ (width × depth), so the km/h figures are only as good as these numbers. A rough
-check on 5 Oct 2026: about 0.2 km/h was seen going out at 7am, and the model said about 0.4. That suggests
-the river may be deeper than 2.5 m. If anyone measures the depth, put it in `depth_m`.
+Speed scales with 1 ÷ (width × depth), so the km/h figures are only as good as these numbers. If anyone
+measures the depth, put it in `depth_m`.
+
+### Checking against what's seen on the water
+
+Sightings are logged in `config/flow_observations.json`. To add one:
+
+```
+python3 scripts/check_flow.py add "2026-10-17 08:00" out --note "very slightly downstream"
+python3 scripts/check_flow.py add "2026-10-20 06:30" in --kmh 0.5
+```
+
+- `seen` is `out` (downstream), `in` (upstream) or `still`; `--kmh` is optional.
+- Add a sighting within 3 days, so Essendon's wind for that time is still on BOM's site.
+- Then run `python3 scripts/check_flow.py` to compare every sighting with the model.
+  - It uses the current settings, so rerun it after changing `depth_m` or `ungauged_factor` to see if the fit improved.
+
+So far:
+
+- **5 Oct 2026, 7am:** about 0.2 km/h going out was seen. The model said about 0.4 km/h, with Keilor at 26 m³/s.
+  That hints the river is deeper than 2.5 m.
+- **15 Oct 7am and 17 Oct 8am:** very slightly downstream was seen. The model said about 0.05–0.07 km/h
+  upstream. Both were near high water at low flow (Keilor about 1 m³/s), with a light northerly blowing
+  downstream.
+  - Missing creek water can't explain the gap: at that flow the river adds only about 0.03 km/h.
+  - The likely causes are wind drift (about 3% of the wind speed at the surface) and fresh river water running
+    out on top of salt water still coming in underneath. The Maribyrnong has a salt-wedge estuary.
+  - The model gives the average over the full depth, so near slack the surface can go the other way.
+    It's far below the 2 km/h yellow, so the lights aren't affected.
 
 Why not use the slope of the water between Poyntons and the mouth? Over the 9 km of river below the
 course the slope is tiny. In Jan 2024, Keilor ran at 84–120 m³/s and Poyntons rose only 0.1–0.3 m. That's
@@ -87,8 +119,8 @@ Checked against history using measured data:
 
 | Event | Fastest, going out |
 |---|---|
-| Oct 2022 flood | about 8 km/h |
-| Jan 2024 flood | about 3 km/h |
+| Oct 2022 flood | about 9 km/h |
+| Jan 2024 flood | about 3.4 km/h |
 | Normal day | under 1 km/h |
 
 ### Keilor flow forecast
@@ -160,11 +192,13 @@ If a source fails, only its lights go grey. Every download is retried once.
 | `config/sources.json` | Location, session times, data URLs, gauge IDs, row "check" links, forecast settings, river shape |
 | `config/river_model.json` | Fitted Keilor flow forecast (made by `fit_river_model.py`) |
 | `config/flow_model.json` | Fitted Poyntons water-level setup (made by `fit_flow_model.py`) |
+| `config/flow_observations.json` | Water movement seen at the course, to check Flow against |
 | `scripts/build.py` | Fetches everything, applies rules, writes `site/data/latest.json` |
 | `scripts/sources.py` | One fetch function per data source |
 | `scripts/rules.py` | The traffic-light rules (no network; unit tested) |
 | `scripts/river_model.py` | Keilor flow forecast maths |
 | `scripts/flow_model.py` | Water speed and Poyntons height maths |
+| `scripts/check_flow.py` | Adds sightings and compares them with the Flow estimate |
 | `site/` | The web page (`index.html`, `app.js`, `styles.css`, `config.js`) |
 | `tests/` | `python3 -m unittest discover tests` |
 

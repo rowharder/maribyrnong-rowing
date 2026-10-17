@@ -1,0 +1,26 @@
+{
+ "_comment": "Water movement seen at Poyntons, to check the Flow estimate against. Add with scripts/check_flow.py add (within 3 days, so the wind is caught). seen: out (downstream), in (upstream) or still. kmh: rough speed, if known. wind: Essendon Airport at that time.",
+ "observations": [
+  {
+   "time": "2026-10-05 07:00",
+   "seen": "out",
+   "kmh": 0.2,
+   "note": "About 0.2 km/h going out; the model said about 0.4 then.",
+   "wind": null
+  },
+  {
+   "time": "2026-10-15 07:00",
+   "seen": "out",
+   "kmh": null,
+   "note": "Very slightly downstream, near high water.",
+   "wind": {"dir": "NW", "kmh": 9, "gust_kmh": 9}
+  },
+  {
+   "time": "2026-10-17 08:00",
+   "seen": "out",
+   "kmh": null,
+   "note": "Very slightly downstream, about an hour before high water.",
+   "wind": {"dir": "N", "kmh": 13, "gust_kmh": 19}
+  }
+ ]
+}

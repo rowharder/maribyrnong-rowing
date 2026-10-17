@@ -3,10 +3,11 @@
 The water passing Poyntons is the river's own flow plus the tide filling or emptying the tidal reach
 upstream (from Poyntons up to the tidal limit near Solomon's Ford):
 
-    Q = Q_river(t - lag) - upstream_area * (rate the water level is rising)
+    Q = Q_river(t - lag) * ungauged_factor - upstream_area * (rate the water level is rising)
     speed = Q / (width * depth)          positive = downstream (going out)
 
-Q_river is Keilor's flow (measured, then our rain-driven forecast). The tide comes from the BOM
+Q_river is Keilor's flow (measured, then our rain-driven forecast). ungauged_factor adds the creeks that
+join below Keilor and aren't measured. The tide comes from the BOM
 Williamstown prediction, which runs in step with the course. Depth follows the water level.
 
 River flow also lifts the water at Poyntons a little above the tide ("setup", fitted from history by
@@ -23,8 +24,9 @@ MIN_DEPTH_M = 0.5
 def speed_kmh(q_river, tide_rate_m_per_hr, height_above_mean_m, geom):
     """(total, river part, tide part) in km/h; positive = downstream."""
     area = geom["width_m"] * max(geom["depth_m"] + height_above_mean_m, MIN_DEPTH_M)
+    river_q = q_river * geom.get("ungauged_factor", 1.0)
     tide_q = -geom["upstream_tidal_area_m2"] * tide_rate_m_per_hr / 3600
-    river, tide = q_river / area * KMH, tide_q / area * KMH
+    river, tide = river_q / area * KMH, tide_q / area * KMH
     return river + tide, river, tide
 
 

@@ -192,6 +192,8 @@
     "width_m": 52,
     "depth_m": 2.5,
     "upstream_tidal_area_m2": 360000,
+    "ungauged_factor": 1.1,
+    "_ungauged_comment": "Keilor's flow is multiplied by this for the creeks that join below Keilor and aren't measured (Taylors, Steele, Five Mile, urban drains). The whole basin is about 1,408-1,452 km² (Melbourne Water, BOM); those creeks are roughly 5-10% of it, but they're urban, so they run off more per km². A rough figure: revise it from config/flow_observations.json (scripts/check_flow.py).",
     "keilor_lag_hours": 2,
     "_lag_comment": "Hours for Keilor's flow to reach the course (about 10 km)."
   },

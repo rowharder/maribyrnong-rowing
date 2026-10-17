@@ -1,6 +1,6 @@
 {
  "_comment": "Fitted by scripts/fit_flow_model.py. mean_level_m: typical Poyntons gauge level at low flow (gauge datum). setup: how far river flow lifts Poyntons above the tide, k * flow^p.",
- "fitted": "2026-10-05",
+ "fitted": "2026-10-17",
  "mean_level_m": 0.164,
  "setup": {
   "k": 0.003329,
@@ -52,18 +52,18 @@
  ],
  "events": {
   "Oct 2022 flood": {
-   "fastest_out_kmh": 8.17,
+   "fastest_out_kmh": 9.01,
    "at": "2022-10-14 09:00",
-   "river_kmh": 8.44,
+   "river_kmh": 9.29,
    "tide_kmh": -0.27,
-   "fastest_in_kmh": 0.42
+   "fastest_in_kmh": 0.4
   },
   "Jan 2024 flood": {
-   "fastest_out_kmh": 3.1,
+   "fastest_out_kmh": 3.4,
    "at": "2024-01-09 06:00",
-   "river_kmh": 2.99,
+   "river_kmh": 3.28,
    "tide_kmh": 0.11,
-   "fastest_in_kmh": 0.23
+   "fastest_in_kmh": 0.22
   },
   "Dry week, Feb 2025": {
    "fastest_out_kmh": 0.62,
@@ -73,10 +73,10 @@
    "fastest_in_kmh": 0.61
   },
   "Last 3 days": {
-   "fastest_out_kmh": 1.27,
-   "at": "2026-10-05 01:00",
-   "river_kmh": 0.86,
-   "tide_kmh": 0.41,
+   "fastest_out_kmh": 1.36,
+   "at": "2026-10-04 14:00",
+   "river_kmh": 1.13,
+   "tide_kmh": 0.24,
    "fastest_in_kmh": 0.49
   }
  },

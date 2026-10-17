@@ -27,6 +27,12 @@ class Speed(unittest.TestCase):
         # 0.2 m/hr over 360,000 m² is 20 m³/s; against 20 m³/s of river the water stands still.
         self.assertAlmostEqual(fm.speed_kmh(20, 0.2, 0.0, GEOM)[0], 0.0)
 
+    def test_ungauged_factor_scales_river_part_only(self):
+        plain = fm.speed_kmh(100, 0.1, 0.0, GEOM)
+        more = fm.speed_kmh(100, 0.1, 0.0, GEOM | {"ungauged_factor": 1.1})
+        self.assertAlmostEqual(more[1], plain[1] * 1.1)
+        self.assertAlmostEqual(more[2], plain[2])
+
     def test_higher_water_is_slower(self):
         self.assertLess(fm.speed_kmh(50, 0.0, 0.5, GEOM)[0], fm.speed_kmh(50, 0.0, 0.0, GEOM)[0])
 
