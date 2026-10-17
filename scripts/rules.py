@@ -59,7 +59,8 @@ def eval_wind(hours, th, warnings=None, within_warning_window=False):
     vals = [h["wind"] for h in hours if h and h.get("wind") is not None]
     if not vals:
         return factor(UNKNOWN, "?", "No wind forecast available")
-    w = max(vals)
+    w = round(max(vals))  # judge on the same whole km/h we display
+    windiest = max((h for h in hours if h and h.get("wind") is not None), key=lambda h: h["wind"])
     lv = _band(w, th["wind_kmh"]["amber"], th["wind_kmh"]["red"])
     gusts = [h["gust"] for h in hours if h and h.get("gust") is not None]
     gust_txt = f"Gusts to {max(gusts):.0f} km/h" if gusts else ""
@@ -69,7 +70,9 @@ def eval_wind(hours, th, warnings=None, within_warning_window=False):
         for warn in warnings["severe_weather"]:
             lv = RED
             reasons.insert(0, f"BOM warning: {warning_title(warn)}")
-    return factor(lv, f"{w:.0f} km/h", *reasons)
+    f = factor(lv, f"{w:.0f} km/h", *reasons)
+    f["wind_from_deg"] = windiest.get("wind_dir")  # where the windiest hour's wind comes from; drawn as an arrow
+    return f
 
 
 def eval_temp(hours, th):
@@ -94,7 +97,7 @@ def eval_rain(hours, th):
     vals = [h["rain"] for h in hours if h and h.get("rain") is not None]
     if not vals:
         return factor(UNKNOWN, "?", "No rain forecast available")
-    r = max(vals)
+    r = round(max(vals), 1)  # judge on the same rounded number we display
     lv = _band(r, th["rain_mm_per_hr"]["amber"], th["rain_mm_per_hr"].get("red"))
     if lv == GREEN:
         f = factor(GREEN, "Dry" if r < 0.1 else f"{r:.1f} mm", "No rain forecast" if r < 0.1 else f"Light rain, up to {r:.1f} mm/hr")
@@ -290,6 +293,7 @@ def eval_flow(rows, gauges, warnings, th, watch_applies=True, note=""):
         rise = g.get("rise_m_per_hr")
         if rise is None or g["role"] == "course":
             continue
+        rise = round(rise, 2)  # judge on the same rounded number we display
         rlv = _band(rise, ft["upstream_rise_m_per_hr"]["amber"], ft["upstream_rise_m_per_hr"]["red"])
         if rlv != GREEN:
             reasons.append(f"Upstream: {g['name']} rising {rise:.2f} m/hr")

@@ -56,6 +56,18 @@ class Single(unittest.TestCase):
         self.assertEqual(rules.eval_wind([hour(wind=22)], TH)["level"], "amber")
         self.assertEqual(rules.eval_wind([hour(wind=30)], TH)["level"], "red")
 
+    def test_colour_follows_displayed_number(self):
+        f = rules.eval_wind([hour(wind=17.6)], TH)
+        self.assertEqual((f["value"], f["level"]), ("18 km/h", "amber"))
+        f = rules.eval_rain([hour(rain=1.96)], TH)
+        self.assertEqual((f["value"], f["level"]), ("2.0 mm", "amber"))
+        self.assertEqual(rules.eval_rain([hour(rain=0.04)], TH)["value"], "Dry")
+
+    def test_wind_direction_from_windiest_hour(self):
+        f = rules.eval_wind([hour(wind=10, wind_dir=90), hour(wind=20, wind_dir=350)], TH)
+        self.assertEqual(f["wind_from_deg"], 350)
+        self.assertIsNone(rules.eval_wind([hour(wind=10)], TH)["wind_from_deg"])
+
     def test_visibility_bands(self):
         lv = lambda m: rules.eval_visibility([hour(visibility=m)], "", False, TH)
         self.assertEqual(lv(1600)["level"], "green")

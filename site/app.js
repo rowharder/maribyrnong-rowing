@@ -18,8 +18,16 @@
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   // Flow shows which way the water runs instead of a tick: → upstream (in), ← downstream (out).
   const ARROW = { in: ["→", "flowing upstream"], out: ["←", "flowing downstream"] };
-  const light = (level, size = "", direction = null) => {
-    const a = ARROW[direction];
+  // Wind shows which way it blows, up = north: a southerly points up, a northerly down.
+  const COMPASS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+  const compass = (deg) => COMPASS[Math.round(deg / 22.5) % 16];
+  const light = (level, size = "", x = {}) => {
+    const a = ARROW[x.direction];
+    const w = x.wind_from_deg;
+    if (w != null && !a) {
+      return `<span class="light ${size} ${level} arrow" role="img" aria-label="${LABEL[level]}, wind from the ${compass(w)}"
+        style="transform: rotate(${(w + 180) % 360}deg)">↑</span>`;
+    }
     return `<span class="light ${size} ${level}${a ? " arrow" : ""}" role="img" aria-label="${LABEL[level]}${a ? `, ${a[1]}` : ""}">${a ? a[0] : ICON[level]}</span>`;
   };
 
@@ -101,7 +109,7 @@
         const x = c.factors[f.id];
         const l = lv(x.level);
         html += `<td class="cell ${colClass(i)}${sel(i)}" data-col="${i}" title="${esc(x.reasons.join(" • "))}">
-          ${light(l, "", x.direction)}<span class="val">${esc(x.value)}</span>${x.combo ? `<span class="combo-tag">${esc(x.combo)}</span>` : ""}</td>`;
+          ${light(l, "", x)}<span class="val">${esc(x.value)}</span>${x.combo ? `<span class="combo-tag">${esc(x.combo)}</span>` : ""}</td>`;
       });
       html += "</tr>";
     });
@@ -128,7 +136,7 @@
     html += `<ul class="factor-list">`;
     data.factors.forEach((f) => {
       const x = c.factors[f.id];
-      html += `<li>${light(stale ? "unknown" : x.level, "light-sm", x.direction)}<span class="name">${esc(f.label)}</span>
+      html += `<li>${light(stale ? "unknown" : x.level, "light-sm", x)}<span class="name">${esc(f.label)}</span>
         <span class="why">${x.reasons.map((r) => `<div>${esc(r)}</div>`).join("")}${(f.links || []).length
           ? `<div class="check">Check: ${f.links.map((l) => `<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)}</a>`).join(" · ")}</div>` : ""}</span></li>`;
     });
@@ -293,7 +301,8 @@
         { v: f.thresholds.yellow, cls: "tc-amber", label: `yellow ${f.thresholds.yellow} km/h` },
         { v: 0, cls: "tc-zero", label: "" },
       ], { unit: "km/h", digits: 1 })}
-      <p class="note">Above zero = going out (downstream). River flow from Keilor (measured, then our rain forecast) plus the tide
+      <p class="note">Above zero = going out (downstream). River flow from Keilor (measured, then our rain forecast)${g.ungauged_factor && g.ungauged_factor !== 1
+        ? `, plus ${Math.round((g.ungauged_factor - 1) * 100)}% for creeks below Keilor that aren't measured,` : ""} plus the tide
         filling or emptying the river upstream. Assumes the river is ${g.width_m} m wide and ${g.depth_m} m deep at the course –
         a rough estimate, so treat the numbers as a guide.${rain} ${(f.notes || []).map(esc).join(" ")}</p>`;
   }
