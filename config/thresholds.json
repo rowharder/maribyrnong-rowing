@@ -17,14 +17,21 @@
     "combo_min": 0.3
   },
   "lightning": {
-    "_comment": "Red: thunderstorm forecast during the session, or a BOM Severe Thunderstorm Warning (next 24 h). Yellow: BOM's day forecast mentions these words, or unstable air (CAPE) with rain.",
+    "_comment": "Red: thunderstorm forecast during the session, or a BOM Severe Thunderstorm Warning (next 24 h). Yellow: BOM's day forecast mentions these words at a time that overlaps the session (see text_periods), or unstable air (CAPE) with rain.",
     "cape_amber": 800,
     "cape_rain_mm": 0.2,
     "text_keywords_amber": [
       "thunder",
       "lightning",
       "hail"
-    ]
+    ],
+    "_comment_periods": "If BOM's sentence names a time of day, only sessions overlapping these hours (local, start-end) are flagged. Afternoon runs to 7pm so storms lingering into an evening session still count. No time named = whole day.",
+    "text_periods": {
+      "morning": [[0, 12]],
+      "afternoon": [[12, 19]],
+      "evening": [[17, 24]],
+      "night": [[0, 6], [20, 24]]
+    }
   },
   "visibility_m": {
     "_comment": "Yellow under 'amber', red under 'red'. In the dark, red under 'dark_red' (the Dark + fog combination).",

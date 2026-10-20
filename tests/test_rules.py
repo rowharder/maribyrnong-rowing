@@ -173,8 +173,32 @@ class Single(unittest.TestCase):
         self.assertIn("Lightning", r["drivers"])
 
     def test_thunder_in_day_text_is_amber(self):
-        r = session([hour()] * 3, morning="day", day_text="Possible thunderstorm in the afternoon.")
+        r = session([hour()] * 3, morning="day", day_text="Possible thunderstorm.")
         self.assertEqual(r["factors"]["lightning"]["level"], "amber")
+
+    def test_afternoon_thunder_spares_the_morning(self):
+        text = "Mostly sunny morning. The chance of a thunderstorm in the afternoon."
+        r = session([hour()] * 3, morning=True, day_text=text)
+        self.assertEqual(r["factors"]["lightning"]["level"], "green")
+        self.assertIn("not during this session", r["factors"]["lightning"]["reasons"][0])
+        self.assertEqual(r["overall"], "green")
+
+    def test_afternoon_thunder_still_flags_the_evening(self):
+        text = "Mostly sunny morning. The chance of a thunderstorm in the afternoon."
+        r = session([hour()] * 3, morning=False, day_text=text)
+        self.assertEqual(r["factors"]["lightning"]["level"], "amber")
+
+    def test_morning_thunder_spares_the_evening(self):
+        r = session([hour()] * 3, morning=False, day_text="Possible thunderstorm in the morning.")
+        self.assertEqual(r["factors"]["lightning"]["level"], "green")
+
+    def test_overnight_thunder_flags_the_early_morning(self):
+        r = session([hour()] * 3, morning=True, day_text="Possible thunderstorm overnight then clearing.")
+        self.assertEqual(r["factors"]["lightning"]["level"], "amber")
+
+    def test_thunder_in_session_is_red_whatever_the_text_says(self):
+        r = session([hour(code=95)] * 3, morning=True, day_text="Possible thunderstorm in the afternoon.")
+        self.assertEqual(r["factors"]["lightning"]["level"], "red")
 
     def test_damaging_winds_text_does_not_affect_lightning(self):
         r = session([hour()] * 3, morning="day", day_text="Damaging winds possible.")

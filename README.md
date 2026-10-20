@@ -38,7 +38,7 @@ All numbers are in `config/thresholds.json`. In that file, `amber` means yellow.
 | Wind | 18 km/h or more | 28 km/h or more, or a BOM Severe Weather Warning (Central) |
 | Temperature | under 10 °C, or 30 °C or more | 35 °C or more |
 | Rain | 2 mm/hr or more | – (see combinations) |
-| Lightning | BOM day forecast mentions thunder, lightning or hail, or unstable air with rain | thunderstorm forecast during the session, or a BOM Severe Thunderstorm Warning (Central) |
+| Lightning | BOM day forecast mentions thunder, lightning or hail at a time of day that overlaps the session (or with no time given), or unstable air with rain | thunderstorm forecast during the session, or a BOM Severe Thunderstorm Warning (Central) |
 | Fog | visibility under 1,600 m, or fog forecast | visibility under 500 m |
 | Flow | water speed 2 km/h or more (either way), BOM Flood Watch (sessions in the next 24 h), or an upstream gauge rising 0.2 m/hr or faster | 4 km/h or more, BOM Maribyrnong Flood Warning, or an upstream gauge rising 0.5 m/hr or faster |
 

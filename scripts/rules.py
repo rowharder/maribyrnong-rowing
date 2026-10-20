@@ -108,7 +108,28 @@ def eval_rain(hours, th):
     return f
 
 
-def eval_lightning(hours, day_text, warnings, th, within_warning_window):
+def text_mentions(day_text, lt, start, end):
+    """Storm words in BOM's day text, split into (during this session, at another time of day).
+
+    Each sentence is read on its own: "Thunderstorm in the afternoon." only counts for sessions
+    overlapping the afternoon hours; a sentence naming no time of day counts for every session.
+    Returns two phrases like "thunder in the afternoon", or "" when there's nothing.
+    """
+    s0 = start.hour + start.minute / 60
+    s1 = s0 + (end - start).total_seconds() / 3600
+    during, other = [], []
+    for sentence in re.split(r"[.;]", (day_text or "").lower()):
+        words = [k for k in lt["text_keywords_amber"] if k in sentence]
+        if not words:
+            continue
+        periods = [p for p in lt["text_periods"] if p in sentence]
+        phrase = ", ".join(words) + (f" in the {' and '.join(periods)}" if periods else "")
+        overlaps = not periods or any(a < s1 and s0 < b for p in periods for a, b in lt["text_periods"][p])
+        (during if overlaps else other).append(phrase)
+    return "; ".join(during), "; ".join(other)
+
+
+def eval_lightning(hours, day_text, warnings, th, within_warning_window, start, end):
     """Lightning in the area is a definite no-go."""
     lt = th["lightning"]
     lv, reasons = GREEN, []
@@ -124,11 +145,12 @@ def eval_lightning(hours, day_text, warnings, th, within_warning_window):
     if cape_hit:
         lv = worst(lv, AMBER)
         reasons.append("Unstable air with rain – storms could develop")
-    text = (day_text or "").lower()
-    hits = [k for k in lt["text_keywords_amber"] if k in text]
+    hits, elsewhere = text_mentions(day_text, lt, start, end)
     if hits:
         lv = worst(lv, AMBER)
-        reasons.append(f"BOM forecast for the day mentions {', '.join(hits)}")
+        reasons.append(f"BOM forecast mentions {hits}")
+    elif elsewhere:
+        reasons.append(f"BOM forecast mentions {elsewhere} – not during this session")
     if not known and day_text is None:
         return factor(UNKNOWN, "?", "No forecast available")
     if not reasons:
@@ -351,7 +373,7 @@ def evaluate_session(*, start, end, is_morning, hours, day_text, warnings, flow,
         "wind": eval_wind(hours, th, warnings, within_warning_window),
         "temp": eval_temp(hours, th),
         "rain": eval_rain(hours, th),
-        "lightning": eval_lightning(hours, day_text, warnings, th, within_warning_window),
+        "lightning": eval_lightning(hours, day_text, warnings, th, within_warning_window, start, end),
         "visibility": eval_visibility(hours, day_text, is_morning, th),
         "flow": copy.deepcopy(flow),
     }
