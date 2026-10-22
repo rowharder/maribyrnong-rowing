@@ -72,8 +72,8 @@ class Single(unittest.TestCase):
         lv = lambda m: rules.eval_visibility([hour(visibility=m)], "", False, TH)
         self.assertEqual(lv(1600)["level"], "green")
         self.assertEqual(lv(1590)["level"], "amber")
-        self.assertEqual(lv(500)["level"], "amber")
-        self.assertEqual(lv(490)["level"], "red")
+        self.assertEqual(lv(200)["level"], "amber")
+        self.assertEqual(lv(190)["level"], "red")
         self.assertEqual(lv(1594)["value"], "1,590 m")
         self.assertEqual(lv(4300)["value"], "4.3 km")
 
@@ -218,14 +218,14 @@ class Single(unittest.TestCase):
 
 class Combinations(unittest.TestCase):
     def test_dark_plus_thin_fog_stays_amber(self):
-        r = session([hour(visibility=1040, code=45)] * 3, morning=True)
+        r = session([hour(visibility=510, code=45)] * 3, morning=True)
         self.assertEqual(r["factors"]["visibility"]["level"], "amber")
         self.assertNotIn("Dark + fog", r["combinations"])
         r = session([hour(code=45)] * 3, morning=True)  # fog forecast, visibility still good
         self.assertNotIn("Dark + fog", r["combinations"])
 
     def test_dark_plus_fog_is_red(self):
-        r = session([hour(visibility=990, code=45)] * 3, morning=True)
+        r = session([hour(visibility=490, code=45)] * 3, morning=True)
         self.assertEqual(r["overall"], "red")
         self.assertIn("Dark + fog", r["combinations"])
         self.assertEqual(r["factors"]["visibility"]["level"], "red")
