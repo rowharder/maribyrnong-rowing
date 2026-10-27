@@ -49,8 +49,8 @@
   "flow": {
     "_comment": "Estimated water speed at the course in km/h, river plus tide (scripts/flow_model.py). Also red for a BOM Maribyrnong Flood Warning, yellow for a Flood Watch (next 24 h), and yellow/red for an upstream gauge rising fast.",
     "speed_kmh": {
-      "amber": 2,
-      "red": 4
+      "amber": 1,
+      "red": 2
     },
     "upstream_rise_m_per_hr": {
       "amber": 0.2,

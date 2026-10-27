@@ -28,7 +28,7 @@ def speed(kmh, river=None):
 
 
 CALM_FLOW = [speed(0.4), speed(0.6)]
-FAST_FLOW = [speed(2.5)]  # yellow
+FAST_FLOW = [speed(1.5)]  # yellow
 
 
 def flow(rows=CALM_FLOW, gauges=QUIET_GAUGES, warnings=NO_WARNINGS, watch_applies=True):
@@ -96,16 +96,16 @@ class Single(unittest.TestCase):
         self.assertEqual(r["lights"]["short"], "")
 
     def test_flow_speed_bands(self):
-        self.assertEqual(flow([speed(1.94)])["level"], "green")   # shows 1.9 km/h
-        self.assertEqual(flow([speed(1.96)])["level"], "amber")   # shows 2.0 km/h
-        self.assertEqual(flow([speed(3.9)])["level"], "amber")
-        self.assertEqual(flow([speed(4.0)])["level"], "red")
+        self.assertEqual(flow([speed(0.94)])["level"], "green")   # shows 0.9 km/h
+        self.assertEqual(flow([speed(0.96)])["level"], "amber")   # shows 1.0 km/h
+        self.assertEqual(flow([speed(1.9)])["level"], "amber")
+        self.assertEqual(flow([speed(2.0)])["level"], "red")
 
     def test_flow_judged_on_fastest_either_way(self):
-        f = flow([speed(0.5), speed(-2.2, river=0.3), speed(1.0)])
+        f = flow([speed(0.5), speed(-1.2, river=0.3), speed(1.0)])
         self.assertEqual(f["level"], "amber")
-        self.assertEqual(f["value"], "2.2 km/h")
-        self.assertIn("2.2 km/h in", f["reasons"][0])
+        self.assertEqual(f["value"], "1.2 km/h")
+        self.assertIn("1.2 km/h in", f["reasons"][0])
         self.assertEqual(f["direction"], "in")
         self.assertEqual(flow([speed(0.4)])["direction"], "out")
         self.assertIsNone(flow([])["direction"])

@@ -40,7 +40,7 @@ All numbers are in `config/thresholds.json`. In that file, `amber` means yellow.
 | Rain | 2 mm/hr or more | – (see combinations) |
 | Lightning | BOM day forecast mentions thunder, lightning or hail at a time of day that overlaps the session (or with no time given), or unstable air with rain | thunderstorm forecast during the session, or a BOM Severe Thunderstorm Warning (Central) |
 | Fog | visibility under 1,600 m, or fog forecast | visibility under 200 m |
-| Flow | water speed 2 km/h or more (either way), BOM Flood Watch (sessions in the next 24 h), or an upstream gauge rising 0.2 m/hr or faster | 4 km/h or more, BOM Maribyrnong Flood Warning, or an upstream gauge rising 0.5 m/hr or faster |
+| Flow | water speed 1 km/h or more (either way), BOM Flood Watch (sessions in the next 24 h), or an upstream gauge rising 0.2 m/hr or faster | 2 km/h or more, BOM Maribyrnong Flood Warning, or an upstream gauge rising 0.5 m/hr or faster |
 
 **Combinations that are red** (in `combinations`). Each needs all of its factors at yellow or worse
 (darkness counts when lights are needed):
@@ -105,7 +105,7 @@ So far:
   - The likely causes are wind drift (about 3% of the wind speed at the surface) and fresh river water running
     out on top of salt water still coming in underneath. The Maribyrnong has a salt-wedge estuary.
   - The model gives the average over the full depth, so near slack the surface can go the other way.
-    It's far below the 2 km/h yellow, so the lights aren't affected.
+    It's far below the 1 km/h yellow, so the lights aren't affected.
 
 Why not use the slope of the water between Poyntons and the mouth? Over the 9 km of river below the
 course the slope is tiny. In Jan 2024, Keilor ran at 84–120 m³/s and Poyntons rose only 0.1–0.3 m. That's
