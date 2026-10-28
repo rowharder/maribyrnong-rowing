@@ -103,8 +103,6 @@ def eval_rain(hours, th):
         f = factor(GREEN, "Dry" if r < 0.1 else f"{r:.1f} mm", "No rain forecast" if r < 0.1 else f"Light rain, up to {r:.1f} mm/hr")
     else:
         f = factor(lv, f"{r:.1f} mm", f"Rain up to {r:.1f} mm/hr (yellow from {th['rain_mm_per_hr']['amber']})")
-    if r >= th["rain_mm_per_hr"]["combo_min"]:
-        f["active"] = True  # enough rain to matter in combinations (rain + wind)
     return f
 
 

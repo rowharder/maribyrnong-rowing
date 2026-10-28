@@ -5,16 +5,15 @@
     "red": 40
   },
   "heat_c": {
-    "amber": 30,
-    "red": 35
+    "amber": 25,
+    "red": 32
   },
   "cold_c": {
     "amber": 10
   },
   "rain_mm_per_hr": {
-    "_comment": "Rain alone is amber when heavy. Light rain still counts in combinations once it reaches 'combo_min'.",
-    "amber": 2.0,
-    "combo_min": 0.3
+    "_comment": "Any rain the page shows (0.1 mm/hr or more) is amber.",
+    "amber": 0.1
   },
   "lightning": {
     "_comment": "Red: thunderstorm forecast during the session, or a BOM Severe Thunderstorm Warning (next 24 h). Yellow: BOM's day forecast mentions these words at a time that overlaps the session (see text_periods), or unstable air (CAPE) with rain.",

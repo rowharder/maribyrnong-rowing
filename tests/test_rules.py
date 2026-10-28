@@ -62,7 +62,10 @@ class Single(unittest.TestCase):
         self.assertEqual((f["value"], f["level"]), ("18 km/h", "amber"))
         f = rules.eval_rain([hour(rain=1.96)], TH)
         self.assertEqual((f["value"], f["level"]), ("2.0 mm", "amber"))
-        self.assertEqual(rules.eval_rain([hour(rain=0.04)], TH)["value"], "Dry")
+        f = rules.eval_rain([hour(rain=0.04)], TH)
+        self.assertEqual((f["value"], f["level"]), ("Dry", "green"))
+        f = rules.eval_rain([hour(rain=0.06)], TH)
+        self.assertEqual((f["value"], f["level"]), ("0.1 mm", "amber"))
 
     def test_wind_direction_from_windiest_hour(self):
         f = rules.eval_wind([hour(wind=10, wind_dir=90), hour(wind=20, wind_dir=350)], TH)
@@ -79,8 +82,10 @@ class Single(unittest.TestCase):
         self.assertEqual(lv(4300)["value"], "4.3 km")
 
     def test_heat_and_cold(self):
-        self.assertEqual(rules.eval_temp([hour(temp=36)], TH)["level"], "red")
+        self.assertEqual(rules.eval_temp([hour(temp=32)], TH)["level"], "red")
         self.assertEqual(rules.eval_temp([hour(temp=31)], TH)["level"], "amber")
+        self.assertEqual(rules.eval_temp([hour(temp=25)], TH)["level"], "amber")
+        self.assertEqual(rules.eval_temp([hour(temp=24)], TH)["level"], "green")
         self.assertEqual(rules.eval_temp([hour(temp=9)], TH)["level"], "amber")
         self.assertEqual(rules.eval_temp([hour(temp=10)], TH)["level"], "green")
 
@@ -235,7 +240,7 @@ class Combinations(unittest.TestCase):
     def test_dark_plus_rain_is_no_longer_red(self):
         r = session([hour(rain=0.5)] * 3, morning=True)
         self.assertEqual(r["combinations"], [])
-        self.assertEqual(r["overall"], "green", r)
+        self.assertEqual(r["overall"], "amber", r)
 
     def test_three_yellows_make_overall_red(self):
         yellow = dict(temp=8, rain=2.5)
@@ -254,9 +259,10 @@ class Combinations(unittest.TestCase):
         self.assertEqual(r["factors"]["wind"]["level"], "amber")
         self.assertEqual(r["overall"], "amber", r)
 
-    def test_light_rain_daytime_calm_is_green(self):
+    def test_light_rain_is_yellow(self):
         r = session([hour(rain=0.5)] * 3, morning="day")
-        self.assertEqual(r["overall"], "green", r)
+        self.assertEqual(r["factors"]["rain"]["level"], "amber")
+        self.assertEqual(r["overall"], "amber", r)
 
     def test_fast_flow_is_not_part_of_a_combination(self):
         r = session([hour()] * 3, morning="day", flow_rows=FAST_FLOW)
