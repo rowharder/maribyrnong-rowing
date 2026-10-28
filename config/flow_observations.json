@@ -13,14 +13,29 @@
    "seen": "out",
    "kmh": null,
    "note": "Very slightly downstream, near high water.",
-   "wind": {"dir": "NW", "kmh": 9, "gust_kmh": 9}
+   "wind": {
+    "dir": "NW",
+    "kmh": 9,
+    "gust_kmh": 9
+   }
   },
   {
    "time": "2026-10-17 08:00",
    "seen": "out",
    "kmh": null,
    "note": "Very slightly downstream, about an hour before high water.",
-   "wind": {"dir": "N", "kmh": 13, "gust_kmh": 19}
+   "wind": {
+    "dir": "N",
+    "kmh": 13,
+    "gust_kmh": 19
+   }
+  },
+  {
+   "time": "2026-10-27 07:00",
+   "seen": "out",
+   "kmh": 0.45,
+   "note": "Measured about 0.45 km/h outwards",
+   "wind": null
   }
  ]
 }

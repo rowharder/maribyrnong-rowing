@@ -2,7 +2,7 @@
   "_comment": "Rule numbers for the traffic lights. 'amber' means yellow (Caution). At or above 'red' = red; at or above 'amber' = yellow.",
   "wind_kmh": {
     "amber": 18,
-    "red": 28
+    "red": 40
   },
   "heat_c": {
     "amber": 30,
