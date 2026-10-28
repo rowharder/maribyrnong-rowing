@@ -54,7 +54,8 @@ class Single(unittest.TestCase):
     def test_wind_bands(self):
         self.assertEqual(rules.eval_wind([hour(wind=17)], TH)["level"], "green")
         self.assertEqual(rules.eval_wind([hour(wind=22)], TH)["level"], "amber")
-        self.assertEqual(rules.eval_wind([hour(wind=30)], TH)["level"], "red")
+        self.assertEqual(rules.eval_wind([hour(wind=30)], TH)["level"], "amber")
+        self.assertEqual(rules.eval_wind([hour(wind=42)], TH)["level"], "red")
 
     def test_colour_follows_displayed_number(self):
         f = rules.eval_wind([hour(wind=17.6)], TH)
