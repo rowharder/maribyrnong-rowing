@@ -16,7 +16,7 @@ Guide only. The coach or captain makes the call.
 - One **row per factor**: Wind, Temperature, Rain, Lightning, Fog, Flow.
   - Wind and Flow show a coloured arrow instead of a tick.
   - Wind's arrow points the way the wind blows, with north up (↑ is a southerly).
-  - Flow's arrow shows which way the water runs (↑ upstream, ↓ downstream).
+  - Flow's arrow shows which way the water runs (▲ upstream, ▼ downstream).
 - A **Lights** note under the session time ("Lights to 06:24" / "Lights from 19:54") when any part of the
   session is before sunrise or after sunset. It's information, not a light.
 - An **Overall** light per column (the worst factor), with the factors that set it listed underneath.

@@ -16,8 +16,8 @@
   const clock = (ms) => { const c = clockParts(ms); return `${c.h}${c.m !== "00" ? ":" + c.m : ""}${c.ap}`; };
   const clockHM = (hh, mm) => `${+hh % 12 || 12}${mm !== "00" ? ":" + mm : ""}${+hh < 12 ? "am" : "pm"}`;
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  // Flow shows which way the water runs instead of a tick: ↑ upstream (in), ↓ downstream (out).
-  const ARROW = { in: ["↑", "flowing upstream"], out: ["↓", "flowing downstream"] };
+  // Flow shows which way the water runs instead of a tick: ▲ upstream (in), ▼ downstream (out).
+  const ARROW = { in: ["▲", "flowing upstream"], out: ["▼", "flowing downstream"] };
   // Wind shows which way it blows, up = north: a southerly points up, a northerly down.
   const COMPASS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
   const compass = (deg) => COMPASS[Math.round(deg / 22.5) % 16];
