@@ -248,10 +248,11 @@ class Combinations(unittest.TestCase):
         r = session([hour(rain=2.5)] * 3, morning="day", flow_rows=FAST_FLOW)
         self.assertEqual(r["overall"], "amber", r)
 
-    def test_rain_plus_wind_is_red(self):
+    def test_rain_plus_wind_is_no_longer_red(self):
         r = session([hour(rain=0.5, wind=22)] * 3, morning="day")
-        self.assertIn("Rain + wind", r["combinations"])
-        self.assertEqual(r["factors"]["wind"]["level"], "red")
+        self.assertEqual(r["combinations"], [])
+        self.assertEqual(r["factors"]["wind"]["level"], "amber")
+        self.assertEqual(r["overall"], "amber", r)
 
     def test_light_rain_daytime_calm_is_green(self):
         r = session([hour(rain=0.5)] * 3, morning="day")

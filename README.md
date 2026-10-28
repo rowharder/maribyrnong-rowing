@@ -35,7 +35,7 @@ All numbers are in `config/thresholds.json`. In that file, `amber` means yellow.
 
 | Factor | Yellow | Red |
 |---|---|---|
-| Wind | 18 km/h or more | 28 km/h or more, or a BOM Severe Weather Warning (Central) |
+| Wind | 18 km/h or more | 40 km/h or more, or a BOM Severe Weather Warning (Central) |
 | Temperature | under 10 °C, or 30 °C or more | 35 °C or more |
 | Rain | 2 mm/hr or more | – (see combinations) |
 | Lightning | BOM day forecast mentions thunder, lightning or hail at a time of day that overlaps the session (or with no time given), or unstable air with rain | thunderstorm forecast during the session, or a BOM Severe Thunderstorm Warning (Central) |
@@ -46,10 +46,9 @@ All numbers are in `config/thresholds.json`. In that file, `amber` means yellow.
 (darkness counts when lights are needed):
 
 - Dark + fog (visibility under 500 m; fog forecast alone, or 500–1,600 m, stays yellow)
-- Rain + wind
 
 **Overall also goes red when 3 or more of Wind, Temperature, Rain, Fog and Flow are yellow at once** (`yellow_count_red`).
-Dark + rain is no longer a red combination.
+Dark + rain and rain + wind are no longer red combinations.
 
 Flow already includes the tide, so there is no separate Tide light.
 

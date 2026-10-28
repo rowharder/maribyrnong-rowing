@@ -74,14 +74,6 @@
       "requires": {
         "visibility": "thick"
       }
-    },
-    {
-      "label": "Rain + wind",
-      "factors": [
-        "rain",
-        "wind"
-      ],
-      "why": "rough, wet conditions"
     }
   ],
   "_combinations_comment": "When every factor in a combination is active (amber, or dark for darkness), those lights become red. Add your own."
