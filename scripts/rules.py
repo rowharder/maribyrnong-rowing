@@ -128,16 +128,17 @@ def text_mentions(day_text, lt, start, end):
 
 
 def eval_lightning(hours, day_text, warnings, th, within_warning_window, start, end):
-    """Lightning in the area is a definite no-go."""
+    """Storms are too hard to forecast to call a no-go, so this is yellow at most:
+    'Likely' for a thunderstorm forecast in the session or a BOM warning, else 'Possible'."""
     lt = th["lightning"]
-    lv, reasons = GREEN, []
+    lv, reasons, likely = GREEN, [], False
     known = [h for h in hours if h]
     if any(h.get("code") in THUNDER_CODES for h in known):
-        lv = RED
+        lv, likely = AMBER, True
         reasons.append("Thunderstorm forecast during the session")
     if within_warning_window:
         for w in warnings["thunderstorm"]:
-            lv = RED
+            lv, likely = AMBER, True
             reasons.append(f"BOM warning: {warning_title(w)}")
     cape_hit = [h for h in known if (h.get("cape") or 0) >= lt["cape_amber"] and (h.get("rain") or 0) >= lt["cape_rain_mm"]]
     if cape_hit:
@@ -154,7 +155,7 @@ def eval_lightning(hours, day_text, warnings, th, within_warning_window, start, 
     if not reasons:
         reasons.append("No thunderstorms forecast")
     reasons.append("See lightning or hear thunder? Off the water; wait 30 min after the last thunder.")
-    return factor(lv, {GREEN: "None", AMBER: "Possible", RED: "No go"}[lv], *reasons)
+    return factor(lv, "Likely" if likely else {GREEN: "None", AMBER: "Possible"}[lv], *reasons)
 
 
 def _vis_text(m):
@@ -165,24 +166,27 @@ def _vis_text(m):
 def eval_visibility(hours, day_text, is_morning, th):
     vt = th["visibility_m"]
     vals = [h["visibility"] for h in hours if h and h.get("visibility") is not None]
-    lv, reasons = GREEN, []
+    fog_code = any(h and h.get("code") in FOG_CODES for h in hours)
+    bom_fog = is_morning and any(k in (day_text or "").lower() for k in th["fog_keywords"])
+    reasons = []
     v = None
     if vals:
         v = round(min(vals), -1)  # judge on the same rounded value we display
         lv = GREEN if v >= vt["amber"] else AMBER  # never red: the forecast is often wrong about fog
-        if lv != GREEN:
+        if lv == AMBER:
             reasons.append(f"Visibility down to {_vis_text(v)} (yellow under {vt['amber']:,} m)")
-    if any(h and h.get("code") in FOG_CODES for h in hours):
-        lv = worst(lv, AMBER)
-        reasons.append("Fog forecast")
-    if is_morning and any(k in (day_text or "").lower() for k in th["fog_keywords"]):
-        lv = worst(lv, AMBER)
-        reasons.append("BOM forecast mentions fog")
-    if v is None and not reasons:
-        return factor(UNKNOWN, "?", "No forecast available")
-    if not reasons:
-        reasons.append(f"Visibility {_vis_text(v)}" if v < 10000 else "Visibility 10 km+")
+        else:
+            reasons.append(f"Visibility {_vis_text(v)}" if v < 10000 else "Visibility 10 km+")
+    elif fog_code or bom_fog:
+        lv = AMBER  # no visibility number, so go on the fog forecast
     else:
+        return factor(UNKNOWN, "?", "No forecast available")
+    # A fog code or BOM's "fog" only sets the light when there's no visibility number.
+    if fog_code:
+        reasons.append("Fog forecast")
+    if bom_fog:
+        reasons.append("BOM forecast mentions fog")
+    if lv == AMBER:
         reasons.append("Forecast fog is often wrong – check at the river")
     value = (_vis_text(v) if v < 10000 else "Good") if v is not None else "Fog"
     return factor(lv, value, *reasons)
@@ -394,7 +398,7 @@ def many_yellows(factors, rule):
 
 
 def drivers(factors, overall):
-    """Short labels for what set the overall light, e.g. ["Lightning"] or ["Wind", "Flow"]."""
+    """Short labels for what set the overall light, e.g. ["Wind"] or ["3 yellows", "Rain", "Fog", "Flow"]."""
     if overall == GREEN:
         return []
     labels = dict(FACTORS)

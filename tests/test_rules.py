@@ -81,6 +81,15 @@ class Single(unittest.TestCase):
         self.assertEqual(lv(1594)["value"], "1,590 m")
         self.assertEqual(lv(4300)["value"], "4.3 km")
 
+    def test_fog_forecast_with_good_visibility_stays_green(self):
+        f = rules.eval_visibility([hour(code=45)], "Fog early.", True, TH)
+        self.assertEqual(f["level"], "green")
+        self.assertIn("BOM forecast mentions fog", f["reasons"])
+
+    def test_fog_forecast_without_visibility_is_amber(self):
+        f = rules.eval_visibility([hour(visibility=None, code=45)], "", False, TH)
+        self.assertEqual(f["level"], "amber")
+
     def test_heat_and_cold(self):
         self.assertEqual(rules.eval_temp([hour(temp=32)], TH)["level"], "red")
         self.assertEqual(rules.eval_temp([hour(temp=31)], TH)["level"], "amber")
@@ -173,9 +182,11 @@ class Single(unittest.TestCase):
         self.assertEqual(r["drivers"], ["Flow"])
 
 
-    def test_thunderstorm_in_session_is_red(self):
+    def test_thunderstorm_in_session_is_amber_likely(self):
         r = session([hour(), hour(code=95), hour()], morning="day")
-        self.assertEqual(r["factors"]["lightning"]["level"], "red")
+        self.assertEqual(r["factors"]["lightning"]["level"], "amber")
+        self.assertEqual(r["factors"]["lightning"]["value"], "Likely")
+        self.assertEqual(r["overall"], "amber")
         self.assertIn("Lightning", r["drivers"])
 
     def test_thunder_in_day_text_is_amber(self):
@@ -202,9 +213,9 @@ class Single(unittest.TestCase):
         r = session([hour()] * 3, morning=True, day_text="Possible thunderstorm overnight then clearing.")
         self.assertEqual(r["factors"]["lightning"]["level"], "amber")
 
-    def test_thunder_in_session_is_red_whatever_the_text_says(self):
+    def test_thunder_in_session_is_amber_whatever_the_text_says(self):
         r = session([hour(code=95)] * 3, morning=True, day_text="Possible thunderstorm in the afternoon.")
-        self.assertEqual(r["factors"]["lightning"]["level"], "red")
+        self.assertEqual(r["factors"]["lightning"]["level"], "amber")
 
     def test_damaging_winds_text_does_not_affect_lightning(self):
         r = session([hour()] * 3, morning="day", day_text="Damaging winds possible.")
@@ -218,7 +229,8 @@ class Single(unittest.TestCase):
         self.assertEqual(len(w["thunderstorm"]), 1)
         self.assertEqual(len(w["severe_weather"]), 1)
         r = session([hour()] * 3, morning="day", warnings=w)
-        self.assertEqual(r["factors"]["lightning"]["level"], "red")
+        self.assertEqual(r["factors"]["lightning"]["level"], "amber")
+        self.assertEqual(r["factors"]["lightning"]["value"], "Likely")
         self.assertEqual(r["factors"]["wind"]["level"], "red")
 
 

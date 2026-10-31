@@ -16,7 +16,7 @@
     "amber": 0.1
   },
   "lightning": {
-    "_comment": "Red: thunderstorm forecast during the session, or a BOM Severe Thunderstorm Warning (next 24 h). Yellow: BOM's day forecast mentions these words at a time that overlaps the session (see text_periods), or unstable air (CAPE) with rain.",
+    "_comment": "Never red: storms are too hard to forecast. Yellow ('Likely'): thunderstorm forecast during the session, or a BOM Severe Thunderstorm Warning (next 24 h). Yellow ('Possible'): BOM's day forecast mentions these words at a time that overlaps the session (see text_periods), or unstable air (CAPE) with rain.",
     "cape_amber": 800,
     "cape_rain_mm": 0.2,
     "text_keywords_amber": [
@@ -33,7 +33,7 @@
     }
   },
   "visibility_m": {
-    "_comment": "Yellow under 'amber', or when fog is forecast. The forecast is often wrong about fog, so it never goes red on its own.",
+    "_comment": "Yellow under 'amber'. A fog forecast (weather code, or 'fog' in BOM's text) only turns it yellow when there's no visibility number. The forecast is often wrong about fog, so it never goes red.",
     "amber": 1600
   },
   "fog_keywords": [
