@@ -33,16 +33,14 @@
     }
   },
   "visibility_m": {
-    "_comment": "Yellow under 'amber', red under 'red'. In the dark, red under 'dark_red' (the Dark + fog combination).",
-    "amber": 1600,
-    "red": 200,
-    "dark_red": 500
+    "_comment": "Yellow under 'amber', or when fog is forecast. The forecast is often wrong about fog, so it never goes red on its own.",
+    "amber": 1600
   },
   "fog_keywords": [
     "fog"
   ],
   "darkness": {
-    "_comment": "Boat lights needed before sunrise and after sunset (sun centre 0.833° below the horizon, the standard sunrise/sunset definition). Shown as a 'Lights' note, not a light. Only turns things red in combinations (dark + fog).",
+    "_comment": "Boat lights needed before sunrise and after sunset (sun centre 0.833° below the horizon, the standard sunrise/sunset definition). Shown as a 'Lights' note, not a light. Only turns things red in combinations that list it (currently none).",
     "dark_below_deg": -0.833
   },
   "flow": {
@@ -62,18 +60,6 @@
     "min": 3,
     "factors": ["wind", "temp", "rain", "visibility", "flow"]
   },
-  "combinations": [
-    {
-      "label": "Dark + fog",
-      "factors": [
-        "darkness",
-        "visibility"
-      ],
-      "why": "visibility under 500 m in the dark – can't see or be seen",
-      "requires": {
-        "visibility": "thick"
-      }
-    }
-  ],
+  "combinations": [],
   "_combinations_comment": "When every factor in a combination is active (amber, or dark for darkness), those lights become red. Add your own."
 }

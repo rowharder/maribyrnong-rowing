@@ -76,8 +76,8 @@ class Single(unittest.TestCase):
         lv = lambda m: rules.eval_visibility([hour(visibility=m)], "", False, TH)
         self.assertEqual(lv(1600)["level"], "green")
         self.assertEqual(lv(1590)["level"], "amber")
-        self.assertEqual(lv(200)["level"], "amber")
-        self.assertEqual(lv(190)["level"], "red")
+        self.assertEqual(lv(190)["level"], "amber")
+        self.assertEqual(lv(50)["level"], "amber")  # never red: the forecast is often wrong about fog
         self.assertEqual(lv(1594)["value"], "1,590 m")
         self.assertEqual(lv(4300)["value"], "4.3 km")
 
@@ -223,19 +223,17 @@ class Single(unittest.TestCase):
 
 
 class Combinations(unittest.TestCase):
-    def test_dark_plus_thin_fog_stays_amber(self):
-        r = session([hour(visibility=510, code=45)] * 3, morning=True)
+    def test_dark_plus_thick_fog_stays_amber(self):
+        # Friday 30 Oct 2026: forecast 80-120 m and fog codes all morning, but no fog on the river.
+        r = session([hour(visibility=v, code=45) for v in (120, 80, 100)], morning=True)
         self.assertEqual(r["factors"]["visibility"]["level"], "amber")
-        self.assertNotIn("Dark + fog", r["combinations"])
-        r = session([hour(code=45)] * 3, morning=True)  # fog forecast, visibility still good
-        self.assertNotIn("Dark + fog", r["combinations"])
+        self.assertEqual(r["combinations"], [])
+        self.assertEqual(r["overall"], "amber", r)
 
-    def test_dark_plus_fog_is_red(self):
-        r = session([hour(visibility=490, code=45)] * 3, morning=True)
-        self.assertEqual(r["overall"], "red")
-        self.assertIn("Dark + fog", r["combinations"])
-        self.assertEqual(r["factors"]["visibility"]["level"], "red")
-        self.assertEqual(r["drivers"], ["Dark + fog"])
+    def test_fog_counts_toward_three_yellows(self):
+        r = session([hour(visibility=800, rain=0.5)] * 3, morning=True, flow_rows=FAST_FLOW)
+        self.assertEqual(r["overall"], "red", r)
+        self.assertIn("Fog", r["drivers"])
 
     def test_dark_plus_rain_is_no_longer_red(self):
         r = session([hour(rain=0.5)] * 3, morning=True)

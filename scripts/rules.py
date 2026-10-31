@@ -169,10 +169,9 @@ def eval_visibility(hours, day_text, is_morning, th):
     v = None
     if vals:
         v = round(min(vals), -1)  # judge on the same rounded value we display
-        lv = GREEN if v >= vt["amber"] else (AMBER if v >= vt["red"] else RED)
+        lv = GREEN if v >= vt["amber"] else AMBER  # never red: the forecast is often wrong about fog
         if lv != GREEN:
-            reasons.append(f"Visibility down to {_vis_text(v)} "
-                           f"(yellow under {vt['amber']:,} m, red under {vt['red']:,} m)")
+            reasons.append(f"Visibility down to {_vis_text(v)} (yellow under {vt['amber']:,} m)")
     if any(h and h.get("code") in FOG_CODES for h in hours):
         lv = worst(lv, AMBER)
         reasons.append("Fog forecast")
@@ -183,10 +182,10 @@ def eval_visibility(hours, day_text, is_morning, th):
         return factor(UNKNOWN, "?", "No forecast available")
     if not reasons:
         reasons.append(f"Visibility {_vis_text(v)}" if v < 10000 else "Visibility 10 km+")
+    else:
+        reasons.append("Forecast fog is often wrong – check at the river")
     value = (_vis_text(v) if v < 10000 else "Good") if v is not None else "Fog"
-    f = factor(lv, value, *reasons)
-    f["thick"] = v is not None and v < vt["dark_red"]  # thick enough for the dark + fog combination
-    return f
+    return factor(lv, value, *reasons)
 
 
 # ---------------------------------------------------------------- darkness
@@ -224,7 +223,7 @@ def sun_crossing(day_start: datetime, lat, lon, angle, rising):
 
 def eval_darkness(start, end, lat, lon, th, is_morning):
     """When boat lights are needed: any part of the session before sunrise or after sunset.
-    Not a traffic light on its own - it only matters in combinations (dark + fog).
+    Not a traffic light on its own - it only matters in combinations that list it.
     Returns a factor flagged `active` when dark, plus a `lights` note for the page."""
     day0 = start.replace(hour=0, minute=0, second=0, microsecond=0)
     angle = th["darkness"]["dark_below_deg"]
@@ -343,8 +342,8 @@ def apply_combinations(factors, combos):
     """Raise factors to red when dangerous conditions occur together.
 
     Each combo lists groups like ["darkness", "rain"] or ["rain", "wind|lightning"];
-    '|' means any of those factors satisfies that slot. "requires": {"visibility": "thick"} means that
-    factor only counts when it also carries that flag (e.g. visibility under 1,000 m).
+    '|' means any of those factors satisfies that slot. "requires": {"<factor>": "<flag>"} means that
+    factor only counts when it also carries that flag.
     """
     hits = []
     for combo in combos:
@@ -375,7 +374,7 @@ def evaluate_session(*, start, end, is_morning, hours, day_text, warnings, flow,
         "visibility": eval_visibility(hours, day_text, is_morning, th),
         "flow": copy.deepcopy(flow),
     }
-    # Darkness isn't a light of its own, but takes part in combinations (dark + fog).
+    # Darkness isn't a light of its own, but can take part in combinations.
     dark = eval_darkness(start, end, lat, lon, th, is_morning)
     combos = apply_combinations({**factors, "darkness": dark}, th["combinations"])
     overall = worst(*(f["level"] for f in factors.values()))
@@ -395,7 +394,7 @@ def many_yellows(factors, rule):
 
 
 def drivers(factors, overall):
-    """Short labels for what set the overall light, e.g. ["Dark + fog"] or ["Wind", "Flow"]."""
+    """Short labels for what set the overall light, e.g. ["Lightning"] or ["Wind", "Flow"]."""
     if overall == GREEN:
         return []
     labels = dict(FACTORS)

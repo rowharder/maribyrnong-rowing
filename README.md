@@ -39,16 +39,14 @@ All numbers are in `config/thresholds.json`. In that file, `amber` means yellow.
 | Temperature | under 10 °C, or 25 °C or more | 32 °C or more |
 | Rain | any rain (0.1 mm/hr or more) | – |
 | Lightning | BOM day forecast mentions thunder, lightning or hail at a time of day that overlaps the session (or with no time given), or unstable air with rain | thunderstorm forecast during the session, or a BOM Severe Thunderstorm Warning (Central) |
-| Fog | visibility under 1,600 m, or fog forecast | visibility under 200 m |
+| Fog | visibility under 1,600 m, or fog forecast | – (the forecast often predicts fog that doesn't happen, so fog is yellow only) |
 | Flow | water speed 1 km/h or more (either way), BOM Flood Watch (sessions in the next 24 h), or an upstream gauge rising 0.2 m/hr or faster | 2 km/h or more, BOM Maribyrnong Flood Warning, or an upstream gauge rising 0.5 m/hr or faster |
 
 **Combinations that are red** (in `combinations`). Each needs all of its factors at yellow or worse
-(darkness counts when lights are needed):
+(darkness counts when lights are needed). There are none at the moment: dark + fog, dark + rain and
+rain + wind are no longer red combinations.
 
-- Dark + fog (visibility under 500 m; fog forecast alone, or 500–1,600 m, stays yellow)
-
-**Overall also goes red when 3 or more of Wind, Temperature, Rain, Fog and Flow are yellow at once** (`yellow_count_red`).
-Dark + rain and rain + wind are no longer red combinations.
+**Overall goes red when 3 or more of Wind, Temperature, Rain, Fog and Flow are yellow at once** (`yellow_count_red`).
 
 Flow already includes the tide, so there is no separate Tide light.
 
