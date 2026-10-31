@@ -152,6 +152,16 @@
         "label": "BOM Victorian warnings",
         "url": "https://www.bom.gov.au/vic/warnings/"
       }
+    ],
+    "tide": [
+      {
+        "label": "BOM tides – Williamstown",
+        "url": "https://www.bom.gov.au/australia/tides/#!/vic-melbourne-williamstown"
+      },
+      {
+        "label": "Melbourne Water Maribyrnong gauge (near Poyntons)",
+        "url": "https://www.melbournewater.com.au/water-and-environment/water-management/rainfall-and-river-levels#/reader/230106A"
+      }
     ]
   },
   "_sessions_comment": "Times are local. 'weekend' overrides the times on Saturday and Sunday.",

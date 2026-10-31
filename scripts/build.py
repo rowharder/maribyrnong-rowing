@@ -222,6 +222,7 @@ def main():
             hours=session_hours(forecast, start, end),
             day_text=day_text.get(day.isoformat()),
             warnings=warnings, flow=rules.eval_flow(rows, gauges, warnings, th, soon, note),
+            tide=rules.eval_tide(rows, th),
             lat=loc["latitude"], lon=loc["longitude"], th=th, now=now,
         )
         columns.append({

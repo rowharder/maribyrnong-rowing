@@ -24,7 +24,12 @@ def hour(**kw):
 def speed(kmh, river=None):
     """One flow_model row with the given speed (km/h, positive = out)."""
     river = kmh if river is None else river
-    return {"speed_kmh": kmh, "river_kmh": river, "tide_kmh": kmh - river, "flow_m3s": 20.0}
+    return {"speed_kmh": kmh, "river_kmh": river, "tide_kmh": kmh - river, "flow_m3s": 20.0, "poyntons_m": 0.1}
+
+
+def at_level(m, kmh=0.4):
+    """A calm flow row with the water at Poyntons at m metres (gauge datum)."""
+    return speed(kmh) | {"poyntons_m": m}
 
 
 CALM_FLOW = [speed(0.4), speed(0.6)]
@@ -42,8 +47,8 @@ def session(hours, *, morning=True, flow_rows=CALM_FLOW, warnings=NO_WARNINGS, d
     if morning == "day":
         start, end = datetime(2026, 10, 10, 10, 0, tzinfo=TZ), datetime(2026, 10, 10, 11, 30, tzinfo=TZ)
     return rules.evaluate_session(start=start, end=end, is_morning=bool(morning), hours=hours, day_text=day_text,
-                                  warnings=warnings, flow=flow(flow_rows, warnings=warnings), lat=LAT, lon=LON,
-                                  th=TH, now=start)
+                                  warnings=warnings, flow=flow(flow_rows, warnings=warnings),
+                                  tide=rules.eval_tide(flow_rows, TH), lat=LAT, lon=LON, th=TH, now=start)
 
 
 class Single(unittest.TestCase):
@@ -130,15 +135,15 @@ class Single(unittest.TestCase):
         self.assertIn("river 0.9 + tide +0.4", f["reasons"][0])
 
     def test_very_low_tide_is_amber(self):
-        low = lambda m, kmh=0.4: speed(kmh) | {"poyntons_m": m}
-        f = flow([low(0.1), low(-0.27)])
-        self.assertEqual(f["level"], "amber")
-        self.assertEqual(f["value"], "Low tide")
-        self.assertIn("Very low tide: down to -0.27 m", f["reasons"][-1])
-        self.assertEqual(flow([low(-0.26)])["level"], "green")
-        f = flow([low(-0.3, kmh=1.5)])  # already yellow for speed: keep showing the speed
-        self.assertEqual((f["level"], f["value"]), ("amber", "1.5 km/h"))
-        self.assertEqual(flow([low(-0.3, kmh=2.5)])["level"], "red")
+        f = rules.eval_tide([at_level(0.1), at_level(-0.27)], TH)
+        self.assertEqual((f["level"], f["value"]), ("amber", "Very low"))
+        self.assertIn("Very low tide: down to -0.27 m", f["reasons"][0])
+        self.assertEqual(rules.eval_tide([at_level(-0.26)], TH)["level"], "green")
+        self.assertEqual(rules.eval_tide([at_level(-0.9)], TH)["level"], "amber")  # never red
+        self.assertEqual(rules.eval_tide([], TH)["level"], "unknown")
+
+    def test_low_tide_is_separate_from_flow(self):
+        self.assertEqual(flow([at_level(-0.3)])["level"], "green")
 
     def test_no_flow_estimate_is_unknown(self):
         self.assertEqual(flow([])["level"], "unknown")
@@ -271,13 +276,9 @@ class Combinations(unittest.TestCase):
         self.assertEqual(r["drivers"][0], "3 yellows")
 
     def test_low_tide_does_not_count_toward_three_yellows(self):
-        low_tide = [speed(0.4) | {"poyntons_m": -0.3}]
-        r = session([hour(temp=8, rain=2.5)] * 3, morning="day", flow_rows=low_tide)
-        self.assertEqual(r["factors"]["flow"]["level"], "amber")
+        r = session([hour(temp=8, rain=2.5)] * 3, morning="day", flow_rows=[at_level(-0.3)])
+        self.assertEqual(r["factors"]["tide"]["level"], "amber")
         self.assertEqual(r["overall"], "amber", r)
-        fast_low = [speed(1.5) | {"poyntons_m": -0.3}]  # yellow for speed too: counts as usual
-        r = session([hour(temp=8, rain=2.5)] * 3, morning="day", flow_rows=fast_low)
-        self.assertEqual(r["overall"], "red", r)
 
     def test_two_yellows_stay_yellow(self):
         r = session([hour(rain=2.5)] * 3, morning="day", flow_rows=FAST_FLOW)
