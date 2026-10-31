@@ -299,7 +299,8 @@ def _kmh(v):
 def eval_flow(rows, gauges, warnings, th, watch_applies=True, note=""):
     """Water speed at the course during a session (flow_model rows: speed_kmh = river + tide, positive = out).
     Also red for a BOM Maribyrnong Flood Warning, yellow for a Flood Watch if `watch_applies` (sessions in
-    the next 24 hours), and yellow/red for an upstream gauge rising fast (a pulse the forecast can't see)."""
+    the next 24 hours), yellow/red for an upstream gauge rising fast (a pulse the forecast can't see), and
+    yellow for a very low tide at Poyntons."""
     ft = th["flow"]
     band = ft["speed_kmh"]
     lv, reasons, value, direction = GREEN, [], "?", None
@@ -312,6 +313,14 @@ def eval_flow(rows, gauges, warnings, th, watch_applies=True, note=""):
         reasons.append(f"Up to {_kmh(fast['speed_kmh'])} (river {fast['river_kmh']:.1f} + tide {fast['tide_kmh']:+.1f}; "
                        f"yellow from {band['amber']}, red from {band['red']})")
         reasons.append(f"Keilor flow {fast['flow_m3s']:.0f} m³/s{f'. {note}' if note else ''}")
+        levels = [r["poyntons_m"] for r in rows if r.get("poyntons_m") is not None]
+        low = round(min(levels), 2) if levels else None  # judge on the same rounded number we display
+        if low is not None and low < ft["low_level_m"]["amber"]:
+            if lv == GREEN:
+                value = "Low tide"
+            lv = worst(lv, AMBER)
+            reasons.append(f"Very low tide: down to {low:.2f} m at Poyntons (yellow under "
+                           f"{ft['low_level_m']['amber']:.2f} m) – launching and landing are harder")
     for g in gauges:
         rise = g.get("rise_m_per_hr")
         if rise is None or g["role"] == "course":

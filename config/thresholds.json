@@ -52,6 +52,10 @@
     "upstream_rise_m_per_hr": {
       "amber": 0.2,
       "red": 0.5
+    },
+    "low_level_m": {
+      "_comment": "Very low tide: yellow when the forecast water level at Poyntons (course gauge 230106A datum) drops under 'amber' during the session. -0.26 m is the lowest 5% of hourly gauge readings 2018-2026 (history/230106A_*); about 6% of sessions. Launching and landing are harder.",
+      "amber": -0.26
     }
   },
   "stale_after_hours": 8,

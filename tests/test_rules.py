@@ -129,6 +129,17 @@ class Single(unittest.TestCase):
         f = flow([speed(1.3, river=0.9)])
         self.assertIn("river 0.9 + tide +0.4", f["reasons"][0])
 
+    def test_very_low_tide_is_amber(self):
+        low = lambda m, kmh=0.4: speed(kmh) | {"poyntons_m": m}
+        f = flow([low(0.1), low(-0.27)])
+        self.assertEqual(f["level"], "amber")
+        self.assertEqual(f["value"], "Low tide")
+        self.assertIn("Very low tide: down to -0.27 m", f["reasons"][-1])
+        self.assertEqual(flow([low(-0.26)])["level"], "green")
+        f = flow([low(-0.3, kmh=1.5)])  # already yellow for speed: keep showing the speed
+        self.assertEqual((f["level"], f["value"]), ("amber", "1.5 km/h"))
+        self.assertEqual(flow([low(-0.3, kmh=2.5)])["level"], "red")
+
     def test_no_flow_estimate_is_unknown(self):
         self.assertEqual(flow([])["level"], "unknown")
 

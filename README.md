@@ -40,7 +40,7 @@ All numbers are in `config/thresholds.json`. In that file, `amber` means yellow.
 | Rain | any rain (0.1 mm/hr or more) | – |
 | Lightning | "Likely": thunderstorm forecast during the session, or a BOM Severe Thunderstorm Warning (Central). "Possible": BOM day forecast mentions thunder, lightning or hail at a time of day that overlaps the session (or with no time given), or unstable air with rain | – (storms are too hard to forecast, so lightning is yellow only) |
 | Fog | visibility under 1,600 m (a fog forecast only counts when there's no visibility number) | – (the forecast often predicts fog that doesn't happen, so fog is yellow only) |
-| Flow | water speed 1 km/h or more (either way), BOM Flood Watch (sessions in the next 24 h), or an upstream gauge rising 0.2 m/hr or faster | 2 km/h or more, BOM Maribyrnong Flood Warning, or an upstream gauge rising 0.5 m/hr or faster |
+| Flow | water speed 1 km/h or more (either way), BOM Flood Watch (sessions in the next 24 h), an upstream gauge rising 0.2 m/hr or faster, or a very low tide (Poyntons under -0.26 m, the lowest 5% of the year; launching and landing are harder) | 2 km/h or more, BOM Maribyrnong Flood Warning, or an upstream gauge rising 0.5 m/hr or faster |
 
 **Combinations that are red** (in `combinations`). Each needs all of its factors at yellow or worse
 (darkness counts when lights are needed). There are none at the moment: dark + fog, dark + rain and
@@ -48,7 +48,8 @@ rain + wind are no longer red combinations.
 
 **Overall goes red when 3 or more of Wind, Temperature, Rain, Fog and Flow are yellow at once** (`yellow_count_red`).
 
-Flow already includes the tide, so there is no separate Tide light.
+Flow already includes the tide, so there is no separate Tide light. A very low tide turns Flow yellow
+and shows "Low tide" in place of the speed (unless the speed is yellow or red already).
 
 Displayed numbers are rounded, and the colour is judged on the rounded number, so they always agree.
 
