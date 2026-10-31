@@ -49,7 +49,8 @@ rain + wind are no longer red combinations.
 **Overall goes red when 3 or more of Wind, Temperature, Rain, Fog and Flow are yellow at once** (`yellow_count_red`).
 
 Flow already includes the tide, so there is no separate Tide light. A very low tide turns Flow yellow
-and shows "Low tide" in place of the speed (unless the speed is yellow or red already).
+and shows "Low tide" in place of the speed (unless the speed is yellow or red already). A Flow light
+that is yellow only for a low tide doesn't count toward the 3-yellows rule.
 
 Displayed numbers are rounded, and the colour is judged on the rounded number, so they always agree.
 

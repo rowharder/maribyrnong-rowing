@@ -270,6 +270,15 @@ class Combinations(unittest.TestCase):
         self.assertEqual(r["overall"], "red", levels)
         self.assertEqual(r["drivers"][0], "3 yellows")
 
+    def test_low_tide_does_not_count_toward_three_yellows(self):
+        low_tide = [speed(0.4) | {"poyntons_m": -0.3}]
+        r = session([hour(temp=8, rain=2.5)] * 3, morning="day", flow_rows=low_tide)
+        self.assertEqual(r["factors"]["flow"]["level"], "amber")
+        self.assertEqual(r["overall"], "amber", r)
+        fast_low = [speed(1.5) | {"poyntons_m": -0.3}]  # yellow for speed too: counts as usual
+        r = session([hour(temp=8, rain=2.5)] * 3, morning="day", flow_rows=fast_low)
+        self.assertEqual(r["overall"], "red", r)
+
     def test_two_yellows_stay_yellow(self):
         r = session([hour(rain=2.5)] * 3, morning="day", flow_rows=FAST_FLOW)
         self.assertEqual(r["overall"], "amber", r)

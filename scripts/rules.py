@@ -313,14 +313,6 @@ def eval_flow(rows, gauges, warnings, th, watch_applies=True, note=""):
         reasons.append(f"Up to {_kmh(fast['speed_kmh'])} (river {fast['river_kmh']:.1f} + tide {fast['tide_kmh']:+.1f}; "
                        f"yellow from {band['amber']}, red from {band['red']})")
         reasons.append(f"Keilor flow {fast['flow_m3s']:.0f} m³/s{f'. {note}' if note else ''}")
-        levels = [r["poyntons_m"] for r in rows if r.get("poyntons_m") is not None]
-        low = round(min(levels), 2) if levels else None  # judge on the same rounded number we display
-        if low is not None and low < ft["low_level_m"]["amber"]:
-            if lv == GREEN:
-                value = "Low tide"
-            lv = worst(lv, AMBER)
-            reasons.append(f"Very low tide: down to {low:.2f} m at Poyntons (yellow under "
-                           f"{ft['low_level_m']['amber']:.2f} m) – launching and landing are harder")
     for g in gauges:
         rise = g.get("rise_m_per_hr")
         if rise is None or g["role"] == "course":
@@ -339,8 +331,17 @@ def eval_flow(rows, gauges, warnings, th, watch_applies=True, note=""):
     if not rows and not warnings["flood"]:
         lv = worst(lv, UNKNOWN)
         reasons.append("No water speed estimate (Keilor flow or tide missing) – check the river yourself")
+    levels = [r["poyntons_m"] for r in rows if r.get("poyntons_m") is not None]
+    low = round(min(levels), 2) if levels else None  # judge on the same rounded number we display
+    tide_only = False
+    if low is not None and low < ft["low_level_m"]["amber"]:
+        if lv == GREEN:
+            lv, value, tide_only = AMBER, "Low tide", True
+        reasons.append(f"Very low tide: down to {low:.2f} m at Poyntons (yellow under "
+                       f"{ft['low_level_m']['amber']:.2f} m) – launching and landing are harder")
     f = factor(lv, value, *reasons)
     f["direction"] = direction  # "out" (downstream), "in" (upstream) or None; drawn as an arrow
+    f["tide_only"] = tide_only  # yellow just for a low tide: not counted in the 3-yellows rule
     return f
 
 
@@ -402,7 +403,7 @@ def evaluate_session(*, start, end, is_morning, hours, day_text, warnings, flow,
 def many_yellows(factors, rule):
     """Names of the yellow lights if enough of the listed factors are yellow at once, else []."""
     labels = dict(FACTORS)
-    yellow = [labels[k] for k in rule["factors"] if factors[k]["level"] == AMBER]
+    yellow = [labels[k] for k in rule["factors"] if factors[k]["level"] == AMBER and not factors[k].get("tide_only")]
     return yellow if len(yellow) >= rule["min"] else []
 
 
