@@ -200,7 +200,7 @@ def main():
     warnings = rules.classify_warnings(raw_warnings)
     if raw_warnings is None:
         # Can't see warnings: flag it rather than silently assuming none.
-        warnings["flood_watch"].append({"title": "BOM warnings feed unavailable - check bom.gov.au", "link": ""})
+        warnings["flood_watch"].append({"title": "BOM alerts feed unavailable - check bom.gov.au", "link": ""})
     sessions = []
     for d in range(src["days_to_show"]):
         day = today + timedelta(days=d)
