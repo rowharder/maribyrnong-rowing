@@ -70,7 +70,7 @@ def eval_wind(hours, th, warnings=None, within_warning_window=False):
     if warnings and within_warning_window:
         for warn in warnings["severe_weather"]:
             lv = RED
-            reasons.insert(0, f"BOM alert: {warning_title(warn)}")
+            reasons.insert(0, f"BOM warning: {warning_title(warn)}")
     f = factor(lv, f"{w:.0f} km/h", *reasons)
     f["wind_from_deg"] = windiest.get("wind_dir")  # where the windiest hour's wind comes from; drawn as an arrow
     return f
@@ -129,7 +129,7 @@ def text_mentions(day_text, lt, start, end):
 
 
 def eval_lightning(hours, day_text, warnings, th, within_warning_window, start, end):
-    """Storms are too hard to forecast to call red, so this is yellow at most:
+    """Storms are too hard to forecast to call a no-go, so this is yellow at most:
     'Likely' for a thunderstorm forecast in the session or a BOM warning, else 'Possible'."""
     lt = th["lightning"]
     lv, reasons, likely = GREEN, [], False
@@ -140,7 +140,7 @@ def eval_lightning(hours, day_text, warnings, th, within_warning_window, start, 
     if within_warning_window:
         for w in warnings["thunderstorm"]:
             lv, likely = AMBER, True
-            reasons.append(f"BOM alert: {warning_title(w)}")
+            reasons.append(f"BOM warning: {warning_title(w)}")
     cape_hit = [h for h in known if (h.get("cape") or 0) >= lt["cape_amber"] and (h.get("rain") or 0) >= lt["cape_rain_mm"]]
     if cape_hit:
         lv = worst(lv, AMBER)
@@ -324,7 +324,7 @@ def eval_flow(rows, gauges, warnings, th, watch_applies=True, note=""):
         lv = worst(lv, rlv)
     for w in warnings["flood"]:
         lv = RED
-        reasons.append(f"BOM alert: {warning_title(w)}")
+        reasons.append(f"BOM warning: {warning_title(w)}")
     for w in (warnings["flood_watch"] if watch_applies else []):
         lv = worst(lv, AMBER)
         reasons.append(f"BOM: {warning_title(w)}")

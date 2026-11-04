@@ -26,7 +26,7 @@ Guide only. The coach or captain makes the call.
   - river gauges
   - water speed at the course (estimated last day, forecast ahead)
   - tide at the course: water height at Poyntons (measured and forecast) against the river mouth
-- Colours: green = Go, yellow = Warning, red = Caution, grey = No data.
+- Colours: green = Go, yellow = Caution, red = No go, grey = No data.
   - If the whole page is more than 8 hours old, every light goes grey.
 
 ## Rules

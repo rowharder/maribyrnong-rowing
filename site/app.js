@@ -2,8 +2,8 @@
   // Set by the publish step (app.js?v=...). Used to reload open pages when the code changes.
   const MY_VERSION = new URL(document.currentScript.src).searchParams.get("v");
   const ICON = { green: "✓", amber: "!", red: "✕", unknown: "?" };
-  const WORD = { green: "GO", amber: "WARNING", red: "CAUTION", unknown: "NO DATA" };
-  const LABEL = { green: "Go", amber: "Warning", red: "Caution", unknown: "No data" };
+  const WORD = { green: "GO", amber: "CAUTION", red: "NO GO", unknown: "NO DATA" };
+  const LABEL = { green: "Go", amber: "Caution", red: "No go", unknown: "No data" };
   const REFRESH_MS = 10 * 60 * 1000;
 
   const $ = (id) => document.getElementById(id);
@@ -71,7 +71,7 @@
     const w = data.now.warnings || [];
     $("warnings").hidden = !w.length;
     $("warnings").innerHTML = w.length
-      ? `<strong>BOM alerts</strong><ul>${w.map((x) =>
+      ? `<strong>BOM warnings</strong><ul>${w.map((x) =>
           `<li>${x.link ? `<a href="${esc(x.link)}" target="_blank" rel="noopener">${esc(x.title)}</a>` : esc(x.title)}</li>`).join("")}</ul>`
       : "";
   }
@@ -127,7 +127,7 @@
     if (!c) { $("detail").hidden = true; return; }
     const l = stale ? "unknown" : c.overall;
     let html = `<h2>${light(l)} ${esc(c.date_label)} · ${esc(c.session_label)} ${esc(c.time_label)} – ${WORD[l]}</h2>`;
-    if (c.combinations?.length) html += `<p><strong>Caution combination:</strong> ${c.combinations.map(esc).join(", ")}</p>`;
+    if (c.combinations?.length) html += `<p><strong>No-go combination:</strong> ${c.combinations.map(esc).join(", ")}</p>`;
     if (c.lights) {
       const ll = data.lights_link;
       html += `<p class="lights-line">${esc(c.lights.detail)}${ll ? ` · <a href="${esc(ll.url)}" target="_blank" rel="noopener">${esc(ll.label)}</a>` : ""}</p>`;
