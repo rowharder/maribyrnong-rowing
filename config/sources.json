@@ -26,6 +26,8 @@
   ],
   "days_to_show": 4,
   "open_meteo_url": "https://api.open-meteo.com/v1/forecast",
+  "published_data_url": "https://rowharder.github.io/maribyrnong-rowing/data/latest.json",
+  "forecast_fallback_hours": 24,
   "bom_forecast_ftp": "ftp://ftp.bom.gov.au/anon/gen/fwo/IDV10450.xml",
   "bom_forecast_area": "Melbourne",
   "bom_obs_url": "https://www.bom.gov.au/fwo/IDV60901/IDV60901.95866.json",

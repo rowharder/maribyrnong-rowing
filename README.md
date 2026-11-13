@@ -183,6 +183,12 @@ Check the printed results before uploading new models.
 
 If a source fails, only its lights go grey. Every download is retried once.
 
+The two Open-Meteo forecasts (hourly weather and catchment rain) are saved in `latest.json`. If Open-Meteo
+fails, the build reuses the last good forecast from the published page, as long as it's no more than 24 hours
+old (`forecast_fallback_hours` in `config/sources.json`). The page then shows a banner with the forecast's
+time, and the data sources list says "using forecast from …". If there's no forecast that recent, the
+weather lights show "?" and the banner says so.
+
 ## Files
 
 | File | What it does |

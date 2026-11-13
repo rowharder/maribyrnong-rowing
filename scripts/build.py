@@ -33,6 +33,57 @@ def attempt(status, name, fn, *args):
         return None
 
 
+def previous_forecasts(src):
+    """Forecasts saved by earlier builds: this machine's latest.json and the published one. Newest of each wins."""
+    found = []
+    if OUT.exists():
+        try:
+            found.append(json.loads(OUT.read_text()).get("forecast_cache") or {})
+        except Exception:
+            traceback.print_exc(file=sys.stderr)
+    try:
+        found.append(json.loads(sources._get(src["published_data_url"])).get("forecast_cache") or {})
+    except Exception:
+        traceback.print_exc(file=sys.stderr)
+    best = {}
+    for cache in found:
+        for key, entry in cache.items():
+            when = datetime.fromisoformat(entry["fetched_at"])
+            if key not in best or when > datetime.fromisoformat(best[key]["fetched_at"]):
+                best[key] = entry
+    return best
+
+
+class ForecastCache:
+    """Open-Meteo forecasts that fetched OK are saved in latest.json. If a fetch fails, the last good one is
+    used instead, as long as it is no older than forecast_fallback_hours."""
+
+    def __init__(self, src, now):
+        self.src, self.now = src, now
+        self.max_age = timedelta(hours=src.get("forecast_fallback_hours", 24))
+        self.saved = {}       # written to latest.json for the next build
+        self.fallbacks = {}   # key -> fetched_at of the old forecast used
+        self._previous = None
+
+    def get(self, status, name, key, fn, *args):
+        data = attempt(status, name, fn, *args)
+        if data is not None:
+            self.saved[key] = {"fetched_at": self.now.isoformat(timespec="minutes"), "data": data}
+            return data
+        if self._previous is None:
+            self._previous = previous_forecasts(self.src)
+        prev = self._previous.get(key)
+        if not prev:
+            return None
+        fetched = datetime.fromisoformat(prev["fetched_at"]).astimezone(self.now.tzinfo)
+        if self.now - fetched > self.max_age:
+            return None
+        self.saved[key] = prev  # carry it forward; its age still counts from the original fetch
+        self.fallbacks[key] = prev["fetched_at"]
+        status[name] = f"using forecast from {fetched:%a} {rules.clock(fetched)} ({status[name]})"
+        return prev["data"]
+
+
 def at(day, hhmm, tz):
     h, m = map(int, hhmm.split(":"))
     return datetime(day.year, day.month, day.day, h, m, tzinfo=tz)
@@ -75,7 +126,7 @@ def course_now(gauges):
     }
 
 
-def keilor_flow_forecast(src, keilor, now, status):
+def keilor_flow_forecast(src, keilor, now, status, cache):
     """Keilor flow: measured, then our forecast from catchment rain. Returns ([(time, m³/s)], notes, rain totals)."""
     tz = now.tzinfo
     measured = [(datetime.strptime(r["time"], "%Y-%m-%d %H:%M:%S").replace(tzinfo=tz), r["flow_m3s"])
@@ -83,7 +134,8 @@ def keilor_flow_forecast(src, keilor, now, status):
     cfg = src["river_forecast"]
     model_path = ROOT / "config" / "river_model.json"
     past = attempt(status, "Melbourne Water catchment rain", sources.fetch_catchment_rain, src, now, 30)
-    future = attempt(status, "Catchment rain forecast (Open-Meteo)", sources.fetch_catchment_rain_forecast, src)
+    future = cache.get(status, "Catchment rain forecast (Open-Meteo)", "catchment_rain",
+                       sources.fetch_catchment_rain_forecast, src)
     if past is None or not model_path.exists():
         return measured, ["Rain data unavailable – river flow held at its current value."], {}
     model = json.loads(model_path.read_text())
@@ -105,7 +157,7 @@ def keilor_flow_forecast(src, keilor, now, status):
     return measured + [(t, q) for t, q in zip(future_hours, flows) if t > last], notes, rain
 
 
-def build_flow(src, th, gauges, tides, now, last_session_end, status):
+def build_flow(src, th, gauges, tides, now, last_session_end, status, cache):
     """Water speed at the course (flow_model.py): estimated from measurements for the last day, then
     forecast from Keilor's flow forecast and the tide prediction. Also the water heights at Poyntons and
     at the river mouth (Williamstown), on the course gauge's datum."""
@@ -116,7 +168,7 @@ def build_flow(src, th, gauges, tides, now, last_session_end, status):
         return None
     model = json.loads(model_path.read_text())
     geom = src["flow"]
-    flows, notes, rain = keilor_flow_forecast(src, keilor, now, status)
+    flows, notes, rain = keilor_flow_forecast(src, keilor, now, status, cache)
     lag = timedelta(hours=geom["keilor_lag_hours"])
     flow_end = flows[-1][0] + lag
     epoch = [(t.timestamp(), q) for t, q in flows]
@@ -184,8 +236,9 @@ def main():
     now = datetime.now(tz)
     today = now.date()
     status = {}
+    cache = ForecastCache(src, now)
 
-    forecast = attempt(status, "Hourly forecast (Open-Meteo)", sources.fetch_forecast, src)
+    forecast = cache.get(status, "Hourly forecast (Open-Meteo)", "hourly", sources.fetch_forecast, src)
     day_text = attempt(status, "BOM text forecast", sources.fetch_bom_text_forecast, src) or {}
     obs = attempt(status, "BOM observations", sources.fetch_bom_observations, src)
     raw_warnings = attempt(status, "BOM warnings", sources.fetch_bom_warnings, src)
@@ -211,7 +264,7 @@ def main():
             if end >= now:
                 sessions.append((d, day, sess, start, end))
     last_end = max((e for *_, e in sessions), default=now)
-    flow = attempt(status, "Flow estimate", build_flow, src, th, gauges, tides, now, last_end, status)
+    flow = attempt(status, "Flow estimate", build_flow, src, th, gauges, tides, now, last_end, status, cache)
 
     columns = []
     for d, day, s, start, end in sessions:
@@ -259,6 +312,9 @@ def main():
         },
         "sources": status,
         "stale_after_hours": th["stale_after_hours"],
+        # Weather forecast state for the page banner: from an earlier build (fallback_from), or none at all.
+        "weather_forecast": {"fallback_from": cache.fallbacks.get("hourly"), "missing": forecast is None},
+        "forecast_cache": cache.saved,
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(out, indent=1, ensure_ascii=False))

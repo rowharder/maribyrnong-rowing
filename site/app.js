@@ -59,6 +59,15 @@
     $("stale").hidden = !stale;
     if (stale) $("stale").textContent =
       `Data is ${Math.floor(ageHrs)} hours old – lights greyed out. Check conditions yourself.`;
+    const wf = data.weather_forecast || {};
+    const fnote = $("forecast-note");
+    fnote.hidden = stale || !(wf.fallback_from || wf.missing);
+    if (wf.fallback_from) {
+      const t = new Date(wf.fallback_from);
+      fnote.textContent = `Open-Meteo didn't respond. Wind, temperature, rain and fog use its forecast from ${clockParts(t).wd} ${clock(t)}.`;
+    } else if (wf.missing) {
+      fnote.textContent = "No weather forecast – Open-Meteo didn't respond. Wind, temperature, rain and fog show ? until the next update.";
+    }
 
     renderWarnings();
     renderGrid(stale);
