@@ -60,9 +60,10 @@
   },
   "stale_after_hours": 8,
   "yellow_count_red": {
-    "_comment": "Overall goes red when this many of the listed lights are yellow at once.",
+    "_comment": "Overall goes red when this many of the listed lights are yellow at once. 'requires': that light only counts with that flag (temperature counts when cold, not hot).",
     "min": 3,
-    "factors": ["wind", "temp", "rain", "visibility", "flow"]
+    "factors": ["wind", "temp", "rain", "visibility", "flow"],
+    "requires": {"temp": "cold"}
   },
   "combinations": [],
   "_combinations_comment": "When every factor in a combination is active (amber, or dark for darkness), those lights become red. Add your own."

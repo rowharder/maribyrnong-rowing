@@ -91,7 +91,9 @@ def eval_temp(hours, th):
     if not reasons:
         reasons.append(f"{lo}°C" if lo == hi else f"{lo}–{hi}°C")
     value = f"{hi:.0f}°C" if hi >= th["heat_c"]["amber"] else f"{lo:.0f}°C"
-    return factor(lv, value, *reasons)
+    f = factor(lv, value, *reasons)
+    f["cold"] = lo < th["cold_c"]["amber"]  # only a cold yellow counts toward the 3-yellows rule
+    return f
 
 
 def eval_rain(hours, th):
@@ -407,9 +409,12 @@ def evaluate_session(*, start, end, is_morning, hours, day_text, warnings, flow,
 
 
 def many_yellows(factors, rule):
-    """Names of the yellow lights if enough of the listed factors are yellow at once, else []."""
+    """Names of the yellow lights if enough of the listed factors are yellow at once, else [].
+    "requires": {"<factor>": "<flag>"} means that factor only counts when it also carries that flag."""
     labels = dict(FACTORS)
-    yellow = [labels[k] for k in rule["factors"] if factors[k]["level"] == AMBER]
+    need = rule.get("requires", {})
+    yellow = [labels[k] for k in rule["factors"]
+              if factors[k]["level"] == AMBER and (k not in need or factors[k].get(need[k]))]
     return yellow if len(yellow) >= rule["min"] else []
 
 

@@ -48,6 +48,7 @@ All numbers are in `config/thresholds.json`. In that file, `amber` means yellow.
 rain + wind are no longer red combinations.
 
 **Overall goes red when 3 or more of Wind, Temperature, Rain, Fog and Flow are yellow at once** (`yellow_count_red`).
+Temperature only counts when it's yellow for cold. A hot yellow doesn't count (`requires`).
 
 Flow is how fast the water moves (river plus tide). Tide is how high the water is – a different risk –
 so it has its own light, and it isn't part of the 3-yellows rule.

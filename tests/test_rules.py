@@ -280,6 +280,11 @@ class Combinations(unittest.TestCase):
         self.assertEqual(r["factors"]["tide"]["level"], "amber")
         self.assertEqual(r["overall"], "amber", r)
 
+    def test_hot_does_not_count_toward_three_yellows(self):
+        r = session([hour(temp=27, rain=2.5)] * 3, morning="day", flow_rows=FAST_FLOW)
+        self.assertEqual(r["factors"]["temp"]["level"], "amber")
+        self.assertEqual(r["overall"], "amber", r)
+
     def test_two_yellows_stay_yellow(self):
         r = session([hour(rain=2.5)] * 3, morning="day", flow_rows=FAST_FLOW)
         self.assertEqual(r["overall"], "amber", r)
