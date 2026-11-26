@@ -35,13 +35,19 @@ All numbers are in `config/thresholds.json`. In that file, `amber` means yellow.
 
 | Factor | Yellow | Red |
 |---|---|---|
-| Wind | 18 km/h or more | 40 km/h or more, or a BOM Severe Weather Warning (Central) |
+| Wind | 18 km/h or more, or a BOM Severe Weather Warning that covers Melbourne (sessions in the next 24 h) | 40 km/h or more |
 | Temperature | under 10 °C, or 25 °C or more | 32 °C or more |
 | Rain | any rain (0.1 mm/hr or more) | – |
-| Lightning | "Likely": thunderstorm forecast during the session, or a BOM Severe Thunderstorm Warning (Central). "Possible": BOM day forecast mentions thunder, lightning or hail at a time of day that overlaps the session (or with no time given), or unstable air with rain | – (storms are too hard to forecast, so lightning is yellow only) |
+| Lightning | "Likely": thunderstorm forecast during the session, or a BOM Severe Thunderstorm Warning that covers Melbourne. ("Possible" stays green: BOM day forecast mentions thunder, lightning or hail at a time of day that overlaps the session (or with no time given), or unstable air with rain) | – (storms are too hard to forecast, so lightning is yellow only) |
 | Fog | visibility under 1,600 m (a fog forecast only counts when there's no visibility number) | – (the forecast often predicts fog that doesn't happen, so fog is yellow only) |
-| Flow | water speed 1 km/h or more (either way), BOM Flood Watch (sessions in the next 24 h), or an upstream gauge rising 0.2 m/hr or faster | 2 km/h or more, BOM Maribyrnong Flood Warning, or an upstream gauge rising 0.5 m/hr or faster |
+| Flow | water speed 1 km/h or more (either way), BOM Flood Watch that lists the Maribyrnong (sessions in the next 24 h), or an upstream gauge rising 0.2 m/hr or faster | 2 km/h or more, BOM Maribyrnong Flood Warning, or an upstream gauge rising 0.5 m/hr or faster |
 | Tide | tide height at Poyntons under -0.26 m (gauge datum; the lowest 5% of the year): launching and landing are harder | – |
+
+**Which BOM warnings count.** A warning title only gives the region ("parts of Central"), so the build
+also reads each warning's own page. A Flood Watch counts only if its catchment list includes the
+Maribyrnong. A Severe Weather or Severe Thunderstorm Warning counts only if it names Melbourne or a
+nearby suburb (`warning_places`). "North Central" on its own doesn't count as Central. If a warning page
+can't be read, the title alone decides, so a real warning isn't missed.
 
 **Combinations that are red** (in `combinations`). Each needs all of its factors at yellow or worse
 (darkness counts when lights are needed). There are none at the moment: dark + fog, dark + rain and

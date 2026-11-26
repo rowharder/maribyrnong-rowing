@@ -3,6 +3,7 @@
 Each fetch_* function returns plain dicts/lists. Errors are raised; build.py
 catches them per source so one broken website never stops the whole update.
 """
+import html
 import json
 import re
 import time
@@ -93,13 +94,39 @@ def fetch_bom_observations(src):
     }
 
 
+WARNING_KINDS = ("flood", "thunderstorm", "severe weather")  # only these warnings' pages are read
+
+
+def warning_text(page, link):
+    """The warning itself from a BOM warning page, without the site menus (which say 'Melbourne').
+    It runs from the product ID (e.g. IDV21037, as in the link) to the page footer."""
+    pid = re.search(r"ID[A-Z]\d{5}", link)
+    start = page.find(pid.group(0)) if pid else -1
+    if start < 0:
+        start = max(page.find('id="content"'), 0)
+    end = page.find('id="footer"', start)
+    end = page.rfind("<", start, end) if end > 0 else -1  # back to the start of the footer's tag
+    body = page[start:end if end > 0 else None]
+    body = re.sub(r"(?is)<(script|style).*?</\1>", " ", body)
+    body = re.sub(r"(?s)<[^>]+>", " ", body)
+    return re.sub(r"\s+", " ", html.unescape(body)).strip()
+
+
 def fetch_bom_warnings(src):
-    """Current Victorian warnings. Returns [{title, link}]."""
+    """Current Victorian warnings. Returns [{title, link, text}]; text is the warning's own wording
+    (to check which places it covers), or None if its page couldn't be read."""
     root = ET.fromstring(_get(src["bom_warnings_url"]))
     out = []
     for item in root.iter("item"):
         title = re.sub(r"\s+", " ", item.findtext("title") or "").strip()
-        out.append({"title": title, "link": (item.findtext("link") or "").strip()})
+        link = (item.findtext("link") or "").strip()
+        text = None
+        if link and any(k in title.lower() for k in WARNING_KINDS):
+            try:
+                text = warning_text(_get(link), link) or None
+            except Exception:
+                text = None  # judged on the title alone
+        out.append({"title": title, "link": link, "text": text})
     return out
 
 

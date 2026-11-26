@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 import rules  # noqa: E402
+import sources  # noqa: E402
 
 TH = json.loads((Path(__file__).resolve().parent.parent / "config" / "thresholds.json").read_text())
 TZ = ZoneInfo("Australia/Melbourne")
@@ -153,12 +154,22 @@ class Single(unittest.TestCase):
         self.assertEqual(flow(gauges=rising)["level"], "red")
 
     def test_flood_watch_only_counts_when_it_applies(self):
-        w = rules.classify_warnings([{"title": "Flood Watch for parts of Central Victoria", "link": ""}])
+        w = rules.classify_warnings([{"title": "Flood Watch for parts of Central Victoria", "link": ""}], TH)
         self.assertEqual(flow(warnings=w)["level"], "amber")
         self.assertEqual(flow(warnings=w, watch_applies=False)["level"], "green")
 
+    def test_flood_watch_must_list_the_maribyrnong(self):
+        # 27 Nov 2026: a Central flood watch for the Yarra, Goulburn etc. but not the Maribyrnong.
+        title = "26/13:09 EDT Initial Flood Watch for parts of North West, Central and North East catchments"
+        elsewhere = "Catchments likely to be affected include: Yarra River downstream of Warrandyte Loddon River"
+        here = "Catchments likely to be affected include: Werribee River Maribyrnong River"
+        self.assertEqual(rules.classify_warnings([{"title": title, "link": "", "text": elsewhere}], TH)["flood_watch"], [])
+        self.assertEqual(len(rules.classify_warnings([{"title": title, "link": "", "text": here}], TH)["flood_watch"]), 1)
+        # Page couldn't be read: the title decides.
+        self.assertEqual(len(rules.classify_warnings([{"title": title, "link": "", "text": None}], TH)["flood_watch"]), 1)
+
     def test_maribyrnong_flood_warning_is_red(self):
-        w = rules.classify_warnings([{"title": "03/10:00 EST Minor Flood Warning for the Maribyrnong River", "link": ""}])
+        w = rules.classify_warnings([{"title": "03/10:00 EST Minor Flood Warning for the Maribyrnong River", "link": ""}], TH)
         self.assertEqual(flow(warnings=w)["level"], "red")
         self.assertEqual(flow([], warnings=w)["level"], "red")
 
@@ -168,7 +179,7 @@ class Single(unittest.TestCase):
             {"title": "Moderate Flood Warning for the Werribee River", "link": ""},
             {"title": "Final Flood Watch for parts of Gippsland, North East, Central, South West and North West Victoria", "link": ""},
             {"title": "03/10:00 EST Final Flood Warning for the Maribyrnong River", "link": ""},
-        ])
+        ], TH)
         self.assertEqual(w["flood_watch"] + w["flood"], [])
         self.assertEqual(flow(warnings=w)["level"], "green")
 
@@ -205,29 +216,37 @@ class Single(unittest.TestCase):
         self.assertEqual(r["overall"], "amber")
         self.assertIn("Lightning", r["drivers"])
 
-    def test_thunder_in_day_text_is_amber(self):
+    def test_thunder_in_day_text_is_green_possible(self):
+        # "Possible" is only a note: the light stays green until a storm is "Likely".
         r = session([hour()] * 3, morning="day", day_text="Possible thunderstorm.")
-        self.assertEqual(r["factors"]["lightning"]["level"], "amber")
+        self.assertEqual(r["factors"]["lightning"]["level"], "green")
+        self.assertEqual(r["factors"]["lightning"]["value"], "Possible")
+        self.assertEqual(r["overall"], "green")
+
+    def test_unstable_air_with_rain_is_green_possible(self):
+        f = rules.eval_lightning([hour(cape=1500, rain=0.5)], "", NO_WARNINGS, TH, False,
+                                 datetime(2026, 10, 10, 10, 0, tzinfo=TZ), datetime(2026, 10, 10, 11, 30, tzinfo=TZ))
+        self.assertEqual((f["level"], f["value"]), ("green", "Possible"))
 
     def test_afternoon_thunder_spares_the_morning(self):
         text = "Mostly sunny morning. The chance of a thunderstorm in the afternoon."
         r = session([hour()] * 3, morning=True, day_text=text)
-        self.assertEqual(r["factors"]["lightning"]["level"], "green")
+        self.assertEqual(r["factors"]["lightning"]["value"], "None")
         self.assertIn("not during this session", r["factors"]["lightning"]["reasons"][0])
         self.assertEqual(r["overall"], "green")
 
     def test_afternoon_thunder_still_flags_the_evening(self):
         text = "Mostly sunny morning. The chance of a thunderstorm in the afternoon."
         r = session([hour()] * 3, morning=False, day_text=text)
-        self.assertEqual(r["factors"]["lightning"]["level"], "amber")
+        self.assertEqual(r["factors"]["lightning"]["value"], "Possible")
 
     def test_morning_thunder_spares_the_evening(self):
         r = session([hour()] * 3, morning=False, day_text="Possible thunderstorm in the morning.")
-        self.assertEqual(r["factors"]["lightning"]["level"], "green")
+        self.assertEqual(r["factors"]["lightning"]["value"], "None")
 
     def test_overnight_thunder_flags_the_early_morning(self):
         r = session([hour()] * 3, morning=True, day_text="Possible thunderstorm overnight then clearing.")
-        self.assertEqual(r["factors"]["lightning"]["level"], "amber")
+        self.assertEqual(r["factors"]["lightning"]["value"], "Possible")
 
     def test_thunder_in_session_is_amber_whatever_the_text_says(self):
         r = session([hour(code=95)] * 3, morning=True, day_text="Possible thunderstorm in the afternoon.")
@@ -241,13 +260,41 @@ class Single(unittest.TestCase):
         w = rules.classify_warnings([
             {"title": "Severe Thunderstorm Warning for Central Forecast District", "link": ""},
             {"title": "Severe Weather Warning for Central Forecast District", "link": ""},
-        ])
+        ], TH)
         self.assertEqual(len(w["thunderstorm"]), 1)
         self.assertEqual(len(w["severe_weather"]), 1)
         r = session([hour()] * 3, morning="day", warnings=w)
         self.assertEqual(r["factors"]["lightning"]["level"], "amber")
         self.assertEqual(r["factors"]["lightning"]["value"], "Likely")
-        self.assertEqual(r["factors"]["wind"]["level"], "red")
+        self.assertEqual(r["factors"]["wind"]["level"], "amber")  # a warning, not a no-go
+        self.assertIn("BOM warning", r["factors"]["wind"]["reasons"][0])
+
+    def test_severe_weather_warning_leaves_strong_wind_red(self):
+        w = rules.classify_warnings([{"title": "Severe Weather Warning for Central Forecast District", "link": ""}], TH)
+        self.assertEqual(rules.eval_wind([hour(wind=45)], TH, w, True)["level"], "red")
+
+    def test_severe_weather_warning_must_name_melbourne(self):
+        # 27 Nov 2026: heavy rain in the ranges, towns listed don't include Melbourne.
+        title = ("27/04:22 EDT Severe Weather Warning for North Central, North East and parts of Central, "
+                 "East Gippsland, Northern Country and West and South Gippsland Forecast Districts.")
+        away = "Locations which may be affected include Shepparton, Seymour, Wangaratta, Daylesford, Bright and Falls Creek."
+        near = "Locations which may be affected include Melbourne, Geelong and Sunbury."
+        self.assertEqual(rules.classify_warnings([{"title": title, "link": "", "text": away}], TH)["severe_weather"], [])
+        self.assertEqual(len(rules.classify_warnings([{"title": title, "link": "", "text": near}], TH)["severe_weather"]), 1)
+
+    def test_north_central_alone_is_not_central(self):
+        w = rules.classify_warnings([
+            {"title": "Severe Thunderstorm Warning for North Central Forecast District", "link": ""},
+            {"title": "Flood Watch for North Central catchments", "link": ""},
+        ], TH)
+        self.assertEqual(w["thunderstorm"] + w["flood_watch"], [])
+
+    def test_warning_text_skips_the_site_menus(self):
+        page = ('<ul><li>Melbourne Forecast</li></ul><div id="content"><p>IDV21037</p>'
+                '<p>Locations which may be affected include Shepparton &amp; Bright.</p></div>'
+                '<div id="footer">Melbourne</div>')
+        text = sources.warning_text(page, "http://reg.bom.gov.au/products/IDV21037.shtml")
+        self.assertEqual(text, "IDV21037 Locations which may be affected include Shepparton & Bright.")
 
 
 class Combinations(unittest.TestCase):

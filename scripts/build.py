@@ -250,7 +250,7 @@ def main():
         if r:
             gauges.append(r)
 
-    warnings = rules.classify_warnings(raw_warnings)
+    warnings = rules.classify_warnings(raw_warnings, th)
     if raw_warnings is None:
         # Can't see warnings: flag it rather than silently assuming none.
         warnings["flood_watch"].append({"title": "BOM warnings feed unavailable - check bom.gov.au", "link": ""})

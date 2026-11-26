@@ -69,7 +69,7 @@ def eval_wind(hours, th, warnings=None, within_warning_window=False):
                gust_txt]
     if warnings and within_warning_window:
         for warn in warnings["severe_weather"]:
-            lv = RED
+            lv = worst(lv, AMBER)  # a warning, not a no-go: yellow unless the wind itself is red
             reasons.insert(0, f"BOM warning: {warning_title(warn)}")
     f = factor(lv, f"{w:.0f} km/h", *reasons)
     f["wind_from_deg"] = windiest.get("wind_dir")  # where the windiest hour's wind comes from; drawn as an arrow
@@ -131,10 +131,11 @@ def text_mentions(day_text, lt, start, end):
 
 
 def eval_lightning(hours, day_text, warnings, th, within_warning_window, start, end):
-    """Storms are too hard to forecast to call a no-go, so this is yellow at most:
-    'Likely' for a thunderstorm forecast in the session or a BOM warning, else 'Possible'."""
+    """Storms are too hard to forecast to call a no-go, so this is yellow at most.
+    Yellow 'Likely': a thunderstorm forecast in the session or a BOM warning.
+    Green 'Possible': BOM's text mentions storms during the session, or unstable air with rain."""
     lt = th["lightning"]
-    lv, reasons, likely = GREEN, [], False
+    lv, reasons, likely, possible = GREEN, [], False, False
     known = [h for h in hours if h]
     if any(h.get("code") in THUNDER_CODES for h in known):
         lv, likely = AMBER, True
@@ -145,11 +146,11 @@ def eval_lightning(hours, day_text, warnings, th, within_warning_window, start, 
             reasons.append(f"BOM warning: {warning_title(w)}")
     cape_hit = [h for h in known if (h.get("cape") or 0) >= lt["cape_amber"] and (h.get("rain") or 0) >= lt["cape_rain_mm"]]
     if cape_hit:
-        lv = worst(lv, AMBER)
+        possible = True
         reasons.append("Unstable air with rain – storms could develop")
     hits, elsewhere = text_mentions(day_text, lt, start, end)
     if hits:
-        lv = worst(lv, AMBER)
+        possible = True
         reasons.append(f"BOM forecast mentions {hits}")
     elif elsewhere:
         reasons.append(f"BOM forecast mentions {elsewhere} – not during this session")
@@ -158,7 +159,7 @@ def eval_lightning(hours, day_text, warnings, th, within_warning_window, start, 
     if not reasons:
         reasons.append("No thunderstorms forecast")
     reasons.append("See lightning or hear thunder? Off the water; wait 30 min after the last thunder.")
-    return factor(lv, "Likely" if likely else {GREEN: "None", AMBER: "Possible"}[lv], *reasons)
+    return factor(lv, "Likely" if likely else "Possible" if possible else "None", *reasons)
 
 
 def _vis_text(m):
@@ -276,21 +277,36 @@ def warning_title(w):
     return re.sub(r"^\d{2}/\d{2}:\d{2} \w+ ", "", w["title"])
 
 
-def classify_warnings(warnings):
-    """Split BOM warnings into those relevant to the Maribyrnong and Melbourne."""
+_CENTRAL = re.compile(r"(?<!north )\bcentral\b")  # the Central district/catchments, not North Central
+
+
+def _names(text, words):
+    return any(re.search(rf"\b{re.escape(w)}\b", text) for w in words)
+
+
+def classify_warnings(warnings, th):
+    """Split BOM warnings into those relevant to the Maribyrnong and Melbourne.
+
+    The title says only the region ("parts of Central"), so a warning whose title passes is then
+    checked against its own wording (w["text"]): a Flood Watch must name the Maribyrnong, a storm or
+    severe weather warning must name Melbourne or a nearby suburb (th["warning_places"]). If the
+    wording couldn't be read (text None), the title alone decides, so a real warning is never missed."""
+    places = th["warning_places"]
     out = {"flood": [], "flood_watch": [], "thunderstorm": [], "severe_weather": []}
     for w in warnings or []:
-        t = w["title"]
-        tl = t.lower()
+        tl = w["title"].lower()
+        text = w.get("text")
+        text = text.lower() if text else None
         if "cancellation" in tl or tl.startswith("final ") or " final " in tl:
             continue  # "Final ..." means the warning or watch has ended
+        here = "maribyrnong" in tl or "melbourne" in tl or bool(_CENTRAL.search(tl))
         if "maribyrnong" in tl and "flood warning" in tl:
             out["flood"].append(w)
-        elif "flood watch" in tl and ("central" in tl or "maribyrnong" in tl):
+        elif "flood watch" in tl and here and (text is None or _names(text, places["flood_watch"])):
             out["flood_watch"].append(w)
-        elif "severe thunderstorm" in tl and ("central" in tl or "melbourne" in tl):
+        elif "severe thunderstorm" in tl and here and (text is None or _names(text, places["weather"])):
             out["thunderstorm"].append(w)
-        elif "severe weather" in tl and ("central" in tl or "melbourne" in tl):
+        elif "severe weather" in tl and here and (text is None or _names(text, places["weather"])):
             out["severe_weather"].append(w)
     return out
 

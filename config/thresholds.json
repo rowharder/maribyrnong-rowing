@@ -2,7 +2,8 @@
   "_comment": "Rule numbers for the traffic lights. 'amber' means yellow (Caution). At or above 'red' = red; at or above 'amber' = yellow.",
   "wind_kmh": {
     "amber": 18,
-    "red": 40
+    "red": 40,
+    "_comment": "A BOM Severe Weather Warning (next 24 h, see warning_places) makes wind yellow at least."
   },
   "heat_c": {
     "amber": 25,
@@ -16,7 +17,7 @@
     "amber": 0.1
   },
   "lightning": {
-    "_comment": "Never red: storms are too hard to forecast. Yellow ('Likely'): thunderstorm forecast during the session, or a BOM Severe Thunderstorm Warning (next 24 h). Yellow ('Possible'): BOM's day forecast mentions these words at a time that overlaps the session (see text_periods), or unstable air (CAPE) with rain.",
+    "_comment": "Never red: storms are too hard to forecast. Yellow ('Likely'): thunderstorm forecast during the session, or a BOM Severe Thunderstorm Warning (next 24 h). Green but shown as 'Possible': BOM's day forecast mentions these words at a time that overlaps the session (see text_periods), or unstable air (CAPE) with rain.",
     "cape_amber": 800,
     "cape_rain_mm": 0.2,
     "text_keywords_amber": [
@@ -57,6 +58,11 @@
   "tide_level_m": {
     "_comment": "Tide height, its own light. Yellow when the forecast water level at Poyntons (course gauge 230106A datum) drops under 'amber' during the session: launching and landing are harder. -0.26 m is the lowest 5% of hourly gauge readings 2018-2026 (history/230106A_*); about 6% of sessions. Never red, and not in yellow_count_red.",
     "amber": -0.26
+  },
+  "warning_places": {
+    "_comment": "A BOM warning whose title names Central (not North Central), Melbourne or the Maribyrnong only counts if its own wording names one of these. Flood Watch: the catchment list must include the Maribyrnong. Severe Thunderstorm / Severe Weather Warning: 'Locations which may be affected' must include one of the 'weather' places. If the warning page can't be read, the title alone decides.",
+    "flood_watch": ["maribyrnong"],
+    "weather": ["melbourne", "maribyrnong", "essendon", "footscray", "keilor", "tullamarine", "sunshine", "williamstown"]
   },
   "stale_after_hours": 8,
   "yellow_count_red": {
