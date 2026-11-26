@@ -37,7 +37,7 @@ All numbers are in `config/thresholds.json`. In that file, `amber` means yellow.
 |---|---|---|
 | Wind | 18 km/h or more, or a BOM Severe Weather Warning that covers Melbourne (sessions in the next 24 h) | 40 km/h or more |
 | Temperature | under 10 °C, or 25 °C or more | 32 °C or more |
-| Rain | any rain (0.1 mm/hr or more) | – |
+| Rain | "Rain" (0.5 mm/hr or more: take a raincoat) or "Heavy" (2.5 mm/hr or more). "Drizzle" (0.1–0.4 mm/hr: row through) and "Dry" stay green | – |
 | Lightning | "Likely": thunderstorm forecast during the session, or a BOM Severe Thunderstorm Warning that covers Melbourne. ("Possible" stays green: BOM day forecast mentions thunder, lightning or hail at a time of day that overlaps the session (or with no time given), or unstable air with rain) | – (storms are too hard to forecast, so lightning is yellow only) |
 | Fog | visibility under 1,600 m (a fog forecast only counts when there's no visibility number) | – (the forecast often predicts fog that doesn't happen, so fog is yellow only) |
 | Flow | water speed 1 km/h or more (either way), BOM Flood Watch that lists the Maribyrnong (sessions in the next 24 h), or an upstream gauge rising 0.2 m/hr or faster | 2 km/h or more, BOM Maribyrnong Flood Warning, or an upstream gauge rising 0.5 m/hr or faster |
@@ -211,7 +211,8 @@ weather lights show "?" and the banner says so.
 | `scripts/river_model.py` | Keilor flow forecast maths |
 | `scripts/flow_model.py` | Water speed and Poyntons height maths |
 | `scripts/check_flow.py` | Adds sightings and compares them with the Flow estimate |
-| `site/` | The web page (`index.html`, `app.js`, `styles.css`, `config.js`) |
+| `scripts/make_icons.py` | Draws the app icons and the link-preview image into `site/` (run by hand; the PNGs are committed) |
+| `site/` | The web page (`index.html`, `app.js`, `styles.css`, `config.js`), plus `manifest.webmanifest`, icons and `og-image.png` |
 | `tests/` | `python3 -m unittest discover tests` |
 
 ## Common changes
@@ -226,6 +227,9 @@ weather lights show "?" and the banner says so.
   python3 scripts/build.py
   cd site && python3 -m http.server 8765    # open http://localhost:8765
   ```
+- **Change the icon or link preview:** edit `scripts/make_icons.py`, run it, push. WhatsApp and Facebook
+  cache previews, so an old link may show the old image for a while. Facebook's Sharing Debugger
+  (developers.facebook.com/tools/debug) refreshes it.
 - **Push changes:** `git add -A && git commit -m "..." && git push`. The site updates in about a minute.
   GitHub access on this Mac is through `gh` (account `rowharder`).
 

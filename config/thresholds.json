@@ -13,8 +13,10 @@
     "amber": 10
   },
   "rain_mm_per_hr": {
-    "_comment": "Any rain the page shows (0.1 mm/hr or more) is amber.",
-    "amber": 0.1
+    "_comment": "Wettest forecast hour in the session, shown as a word. Dry under 'drizzle'. Drizzle (row through) from 'drizzle', green. Rain (take a raincoat) from 'amber', yellow. Heavy from 'heavy', still yellow. 2.5 mm/hr is the standard light/moderate rain boundary.",
+    "drizzle": 0.1,
+    "amber": 0.5,
+    "heavy": 2.5
   },
   "lightning": {
     "_comment": "Never red: storms are too hard to forecast. Yellow ('Likely'): thunderstorm forecast during the session, or a BOM Severe Thunderstorm Warning (next 24 h). Green but shown as 'Possible': BOM's day forecast mentions these words at a time that overlaps the session (see text_periods), or unstable air (CAPE) with rain.",

@@ -100,13 +100,16 @@ def eval_rain(hours, th):
     vals = [h["rain"] for h in hours if h and h.get("rain") is not None]
     if not vals:
         return factor(UNKNOWN, "?", "No rain forecast available")
-    r = round(max(vals), 1)  # judge on the same rounded number we display
-    lv = _band(r, th["rain_mm_per_hr"]["amber"], th["rain_mm_per_hr"].get("red"))
-    if lv == GREEN:
-        f = factor(GREEN, "Dry" if r < 0.1 else f"{r:.1f} mm", "No rain forecast" if r < 0.1 else f"Light rain, up to {r:.1f} mm/hr")
-    else:
-        f = factor(lv, f"{r:.1f} mm", f"Rain up to {r:.1f} mm/hr (yellow from {th['rain_mm_per_hr']['amber']})")
-    return f
+    rt = th["rain_mm_per_hr"]
+    r = round(max(vals), 1)  # judge on the same rounded number the details show
+    lv = _band(r, rt["amber"], rt.get("red"))
+    if r < rt["drizzle"]:
+        return factor(GREEN, "Dry", "No rain forecast")
+    if r < rt["amber"]:
+        return factor(lv, "Drizzle", f"Drizzle, up to {r:.1f} mm/hr – fine to row through (yellow from {rt['amber']})")
+    if r < rt["heavy"]:
+        return factor(lv, "Rain", f"Rain, up to {r:.1f} mm/hr – take a raincoat (yellow from {rt['amber']})")
+    return factor(lv, "Heavy", f"Heavy rain, up to {r:.1f} mm/hr (heavy from {rt['heavy']})")
 
 
 def text_mentions(day_text, lt, start, end):
